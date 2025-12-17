@@ -12,6 +12,21 @@ $rows = [
     'gula'         => 'Gula',
     'ayam'         => 'Ayam',
 ];
+
+/**
+ * Format angka:
+ * < 1000  => 999
+ * >=1000 => 1,000
+ */
+function formatAngka($value) {
+    $angka = (int) ($value ?? 0);
+
+    if ($angka < 1000) {
+        return (string) $angka;
+    }
+
+    return number_format($angka, 0, '.', ',');
+}
 @endphp
 
 <div class="max-w-5xl mx-auto p-6">
@@ -29,8 +44,7 @@ $rows = [
     <div class="mb-6">
         <form action="{{ route('bahans.index') }}" method="GET">
             <label class="block text-xl font-semibold mb-2">Pilih Outlet</label>
-            <select name="outlet"
-                    onchange="this.form.submit()"
+            <select name="outlet" onchange="this.form.submit()"
                     class="w-full md:w-1/2 border rounded p-2 bg-white">
                 <option value="">-- Tampilkan Total Stok Semua Outlet --</option>
                 @foreach($outlets as $outlet)
@@ -54,8 +68,8 @@ $rows = [
             Stok Saat Ini (Outlet: {{ $selectedOutlet }})
         </h2>
 
-        <table class="min-w-full border text-sm text-center">
-            <thead class="bg-gray-100">
+        <table class="min-w-full border text-sm">
+            <thead class="bg-gray-100 text-center">
                 <tr>
                     <th class="p-2 border">Bahan</th>
                     <th class="p-2 border">Jumlah</th>
@@ -64,9 +78,9 @@ $rows = [
             <tbody>
                 @foreach($rows as $key => $label)
                 <tr>
-                    <td class="p-2 border text-left">{{ $label }}</td>
-                    <td class="p-2 border">
-                        {{ number_format($bahan->$key ?? 0, 2, ',', '.') }}
+                    <td class="p-2 border">{{ $label }}</td>
+                    <td class="p-2 border text-right">
+                        {{ formatAngka($bahan->$key) }}
                     </td>
                 </tr>
                 @endforeach
@@ -76,9 +90,11 @@ $rows = [
 
     <hr class="my-6">
 
-    {{-- FORM PERUBAHAN STOK --}}
+    {{-- FORM PERUBAHAN --}}
     <h2 class="text-xl font-semibold mb-2">
-        {{ Auth::user()->role === 'outlet' ? 'Input Bahan Terpakai' : 'Input Perubahan Stok' }}
+        {{ Auth::user()->role === 'outlet'
+            ? 'Input Bahan Terpakai'
+            : 'Input Perubahan Stok' }}
     </h2>
 
     <form class="stok-form" action="{{ route('bahans.store') }}" method="POST">
@@ -91,7 +107,7 @@ $rows = [
                 <label class="block mb-1 font-medium">{{ $label }}</label>
                 <input type="text"
                        name="{{ $key }}"
-                       inputmode="decimal"
+                       inputmode="numeric"
                        placeholder="Masukkan angka"
                        class="stok-input w-full border rounded p-2">
             </div>
@@ -113,8 +129,8 @@ $rows = [
     <div class="p-4 border rounded bg-gray-50">
         <h2 class="text-xl font-semibold mb-4">📊 Total Stok Semua Outlet</h2>
 
-        <table class="min-w-full border text-sm text-center mb-6">
-            <thead class="bg-gray-200">
+        <table class="min-w-full border text-sm mb-6">
+            <thead class="bg-gray-200 text-center">
                 <tr>
                     <th class="p-2 border">Bahan</th>
                     <th class="p-2 border">Total</th>
@@ -123,20 +139,22 @@ $rows = [
             <tbody>
                 @foreach($rows as $key => $label)
                 <tr>
-                    <td class="p-2 border text-left">{{ $label }}</td>
-                    <td class="p-2 border font-medium">
-                        {{ number_format($totalStok->$key ?? 0, 2, ',', '.') }}
+                    <td class="p-2 border">{{ $label }}</td>
+                    <td class="p-2 border text-right font-medium">
+                        {{ formatAngka($totalStok->$key) }}
                     </td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
 
-        {{-- FORM ADMIN/SPV --}}
+        {{-- FORM ADMIN / SPV --}}
         @if(Auth::user()->role !== 'outlet')
         <hr class="my-6">
 
-        <h2 class="text-xl font-semibold mb-2">Input Perubahan Stok (Pilih Outlet)</h2>
+        <h2 class="text-xl font-semibold mb-2">
+            Input Perubahan Stok (Pilih Outlet)
+        </h2>
 
         <form class="stok-form" action="{{ route('bahans.store') }}" method="POST">
             @csrf
@@ -158,7 +176,7 @@ $rows = [
                     <label class="block mb-1 font-medium">{{ $label }}</label>
                     <input type="text"
                            name="{{ $key }}"
-                           inputmode="decimal"
+                           inputmode="numeric"
                            placeholder="Masukkan angka"
                            class="stok-input w-full border rounded p-2">
                 </div>
@@ -181,31 +199,50 @@ $rows = [
 {{-- JAVASCRIPT --}}
 {{-- ================= --}}
 <script>
-function formatAngkaID(value) {
-    let number = value.replace(/[^,\d]/g, '');
-    let split = number.split(',');
-    let sisa = split[0].length % 3;
-    let hasil = split[0].substr(0, sisa);
-    let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+function formatAngka(value) {
+    if (value === '') return '';
 
-    if (ribuan) {
-        hasil += (sisa ? '.' : '') + ribuan.join('.');
+    // cek minus di depan
+    let isNegative = value.trim().startsWith('-');
+
+    // ambil angka saja
+    let number = value.replace(/[^0-9]/g, '');
+
+    // kasus hanya "-"
+    if (number === '' && isNegative) {
+        return '-';
     }
 
-    return split[1] !== undefined
-        ? hasil + ',' + split[1].substring(0, 2)
-        : hasil;
+    if (number === '') return '';
+
+    let intVal = parseInt(number, 10);
+
+    let formatted = intVal < 1000
+        ? intVal.toString()
+        : intVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return isNegative ? '-' + formatted : formatted;
 }
 
 document.querySelectorAll('.stok-form').forEach(form => {
+
     const inputs = form.querySelectorAll('.stok-input');
     const btn = form.querySelector('.btn-submit');
 
+    if (!btn) return;
+
     function cek() {
         let aktif = false;
+
         inputs.forEach(i => {
-            if (i.value !== '' && i.value !== '0') aktif = true;
+            const val = i.value.trim();
+
+            // aktif jika ada angka (bukan hanya "-")
+            if (val !== '' && val !== '-') {
+                aktif = true;
+            }
         });
+
         btn.disabled = !aktif;
         btn.classList.toggle('bg-blue-600', aktif);
         btn.classList.toggle('hover:bg-blue-700', aktif);
@@ -215,19 +252,20 @@ document.querySelectorAll('.stok-form').forEach(form => {
 
     inputs.forEach(input => {
         input.addEventListener('input', function () {
-            this.value = formatAngkaID(this.value);
+            this.value = formatAngka(this.value);
             cek();
         });
     });
 
     form.addEventListener('submit', () => {
         inputs.forEach(input => {
-            input.value = input.value
-                .replace(/\./g, '')
-                .replace(',', '.');
+            // hapus koma saja, minus tetap
+            input.value = input.value.replace(/,/g, '');
         });
     });
 });
 </script>
+
+
 
 @endsection
