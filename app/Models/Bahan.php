@@ -21,4 +21,14 @@ protected $fillable = [
     'gula',
     'ayam',
 ];
+
+protected $casts = [
+    'tepung_roti'  => 'float',
+    'tepung_bumbu' => 'float',
+    'garam'        => 'float',
+    'bubuk_cabe'   => 'float',
+    'telur'        => 'float',
+    'gula'         => 'float',
+    'ayam'         => 'float',
+];
 }

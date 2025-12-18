@@ -31,9 +31,6 @@ class BahanController extends Controller
 
         $viewData = compact('outlets', 'selectedOutlet');
 
-        // ===============================
-        // JIKA OUTLET DIPILIH
-        // ===============================
         if ($selectedOutlet) {
             $bahan = Bahan::where('id', function ($q) use ($selectedOutlet) {
                 $q->select(DB::raw('MAX(id)'))
@@ -42,12 +39,7 @@ class BahanController extends Controller
             })->first();
 
             $viewData['bahan'] = $bahan;
-        }
-
-        // ===============================
-        // JIKA TOTAL SEMUA OUTLET
-        // ===============================
-        else {
+        } else {
             if ($outlets->isNotEmpty()) {
                 $latestIds = Bahan::select(DB::raw('MAX(id) as id'))
                     ->groupBy('nama_outlet')
@@ -68,58 +60,61 @@ class BahanController extends Controller
     }
 
     // ======================
-    // STORE (ANTI BUG)
+    // STORE (DESIMAL AMAN)
     // ======================
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nama_outlet' => 'required|string|max:255'
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'nama_outlet' => 'required|string|max:255'
+    ]);
 
-        $outlet = trim($request->nama_outlet);
+    $outlet = trim($request->nama_outlet);
 
-        // ambil stok terakhir VALID
-        $lastStock = Bahan::where('id', function ($q) use ($outlet) {
-            $q->select(DB::raw('MAX(id)'))
-              ->from('bahans')
-              ->where('nama_outlet', $outlet);
-        })->first();
+    $lastStock = Bahan::where('id', function ($q) use ($outlet) {
+        $q->select(DB::raw('MAX(id)'))
+          ->from('bahans')
+          ->where('nama_outlet', $outlet);
+    })->first();
 
-        $data = ['nama_outlet' => $outlet];
+    $data = ['nama_outlet' => $outlet];
 
-        foreach ($this->fields as $field) {
+    foreach ($this->fields as $field) {
 
-            // bersihkan koma → angka murni
-            $input = $request->input($field);
-            $delta = 0;
+        $input = $request->input($field);
+        $delta = 0.0;
 
-            if ($input !== null && $input !== '') {
-                $delta = (int) str_replace(',', '', $input);
+        if ($input !== null && $input !== '' && $input !== '-') {
 
-                // outlet otomatis minus
-                if (Auth::user()->role === 'outlet') {
-                    $delta = -abs($delta);
-                }
+            /**
+             * INPUT SUDAH DALAM FORMAT:
+             * 12,5 → JS → 12.5
+             * MAKA TINGGAL CAST FLOAT
+             */
+            if (!is_numeric($input)) {
+                // fallback keamanan
+                $input = str_replace(',', '.', $input);
             }
 
-            $last = $lastStock ? (int) $lastStock->$field : 0;
-            $data[$field] = $last + $delta;
+            $delta = (float) $input;
+
+            // outlet selalu minus
+            if (Auth::user()->role === 'outlet') {
+                $delta = -abs($delta);
+            }
         }
 
-        Bahan::create($data);
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'data' => $data
-            ]);
-        }
-
-        return redirect()->back()->with('success', 'Stok berhasil diperbarui');
+        $last = $lastStock ? (float) $lastStock->$field : 0.0;
+        $data[$field] = $last + $delta;
     }
 
+    Bahan::create($data);
+
+    return redirect()->back()->with('success', 'Stok berhasil diperbarui');
+}
+
+
     // ======================
-    // HISTORY (TETAP AMAN)
+    // HISTORY (DESIMAL AMAN)
     // ======================
     public function history(Request $request)
     {
@@ -149,11 +144,11 @@ class BahanController extends Controller
 
             $changes = [];
             foreach ($this->fields as $f) {
-                $curr = (int) $row->$f;
-                $prevVal = $prev ? (int) $prev->$f : 0;
+                $curr = (float) $row->$f;
+                $prevVal = $prev ? (float) $prev->$f : 0.0;
 
                 $changes[$f] = (object) [
-                    'total' => $curr,
+                    'total'  => $curr,
                     'change' => $curr - $prevVal
                 ];
             }
