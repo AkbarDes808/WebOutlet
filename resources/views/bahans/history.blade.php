@@ -24,6 +24,21 @@
     @endif
 
     @php
+        /**
+         * FORMAT ANGKA INDONESIA (DESIMAL AMAN)
+         * 12.5   -> 12,5
+         * 12.00  -> 12
+         * 1250.5 -> 1.250,5
+         */
+        function formatAngka($value) {
+            if ($value === null) return '0';
+
+            $angka = (float) $value;
+            $formatted = number_format($angka, 2, ',', '.');
+
+            return rtrim(rtrim($formatted, '0'), ',');
+        }
+
         $fields = [
             'tepung_roti'  => 'Tepung Roti',
             'tepung_bumbu' => 'Tepung Bumbu',
@@ -42,31 +57,36 @@
             @php
                 $hasChange = collect($record->data)
                     ->pluck('change')
-                    ->contains(fn($v) => $v != 0);
+                    ->contains(fn($v) => (float)$v != 0);
             @endphp
 
-            @if(!$hasChange)
-                @continue
-            @endif
+            @if(!$hasChange) @continue @endif
 
             <div class="bg-white border rounded-lg shadow">
                 <div class="bg-gray-50 p-3 flex justify-between items-center">
-                    <p class="font-semibold text-gray-800">
+                    <p class="font-semibold">
                         {{ $record->created_at->format('d M Y, H:i') }}
                     </p>
-                    <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
                         {{ $record->nama_outlet }}
                     </span>
                 </div>
 
                 <div class="p-3 grid grid-cols-2 gap-y-2 text-sm">
                     @foreach($fields as $key => $label)
-                        @php $change = $record->data[$key]->change; @endphp
+                        @php
+                            $change = (float) $record->data[$key]->change;
+                            $total  = (float) $record->data[$key]->total;
+                        @endphp
+
                         @if($change != 0)
                             <div class="text-gray-600">{{ $label }}</div>
-                            <div class="text-right font-semibold
-                                {{ $change > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                {{ $change > 0 ? '+' : '' }}{{ $change }}
+                            <div class="text-right font-semibold">
+                                {{ formatAngka($total) }}
+                                <span class="text-xs ml-1
+                                    {{ $change > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                    ({{ $change > 0 ? '+' : '' }}{{ formatAngka($change) }})
+                                </span>
                             </div>
                         @endif
                     @endforeach
@@ -97,12 +117,10 @@
                     @php
                         $hasChange = collect($record->data)
                             ->pluck('change')
-                            ->contains(fn($v) => $v != 0);
+                            ->contains(fn($v) => (float)$v != 0);
                     @endphp
 
-                    @if(!$hasChange)
-                        @continue
-                    @endif
+                    @if(!$hasChange) @continue @endif
 
                     <tr class="text-center">
                         <td class="p-2 border whitespace-nowrap">
@@ -113,16 +131,19 @@
                         </td>
 
                         @foreach($fields as $key => $label)
-                            @php $change = $record->data[$key]->change; @endphp
+                            @php
+                                $change = (float) $record->data[$key]->change;
+                                $total  = (float) $record->data[$key]->total;
+                            @endphp
                             <td class="p-2 border">
-                                @if($change > 0)
-                                    <span class="text-green-600 font-semibold">
-                                        +{{ $change }}
-                                    </span>
-                                @elseif($change < 0)
-                                    <span class="text-red-600 font-semibold">
-                                        {{ $change }}
-                                    </span>
+                                @if($change != 0)
+                                    <div class="font-semibold">
+                                        {{ formatAngka($total) }}
+                                    </div>
+                                    <div class="text-xs
+                                        {{ $change > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ $change > 0 ? '+' : '' }}{{ formatAngka($change) }}
+                                    </div>
                                 @else
                                     <span class="text-gray-300">—</span>
                                 @endif
