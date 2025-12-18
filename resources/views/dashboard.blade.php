@@ -10,16 +10,12 @@
  */
 function formatAngka($value) {
     $angka = (int) ($value ?? 0);
-
-    if ($angka < 1000) {
-        return (string) $angka;
-    }
-
-    return number_format($angka, 0, '.', ',');
+    return $angka < 1000 ? (string) $angka : number_format($angka, 0, '.', ',');
 }
 @endphp
 
 <div>
+    {{-- BANNER --}}
     <div class="w-full h-52">
         <img src="https://picsum.photos/1600/900"
              alt="Random Banner From Picsum"
@@ -32,7 +28,9 @@ function formatAngka($value) {
         </h1>
 
         {{-- MENU KARTU --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+
+            {{-- INVENTORY --}}
             <a href="{{ route('bahans.index') }}"
                class="p-6 bg-white shadow rounded-xl flex flex-col items-start hover:shadow-md transition">
                 <div class="text-3xl mb-3">📋</div>
@@ -40,6 +38,7 @@ function formatAngka($value) {
                 <p class="text-sm text-gray-500">Ubah stok bahan</p>
             </a>
 
+            {{-- MARINASI --}}
             @if (strtolower(Auth::user()->role) !== 'spv' && strtolower(Auth::user()->role) !== 'outlet')
                 <a href="{{ route('marinasi.index') }}"
                    class="p-6 bg-white shadow rounded-xl flex flex-col items-start hover:shadow-md transition">
@@ -49,13 +48,15 @@ function formatAngka($value) {
                 </a>
             @endif
 
-            <a href="{{ route('dashboard', ['tab' => 'history']) }}"
+            {{-- HISTORY (DIRECT) --}}
+            <a href="{{ route('bahans.history') }}"
                class="p-6 bg-white shadow rounded-xl flex flex-col items-start hover:shadow-md transition">
                 <div class="text-3xl mb-3">📜</div>
                 <h2 class="font-semibold">History</h2>
                 <p class="text-sm text-gray-500">Lihat riwayat perubahan</p>
             </a>
 
+            {{-- OUTLETS --}}
             @if(strtolower(Auth::user()->role) !== 'outlet')
                 <a href="{{ route('outlets.index') }}"
                    class="p-6 bg-white shadow rounded-xl flex flex-col items-start hover:shadow-md transition">
@@ -64,18 +65,18 @@ function formatAngka($value) {
                     <p class="text-sm text-gray-500">Lihat semua outlet</p>
                 </a>
             @endif
+
         </div>
 
-        {{-- KONTEN --}}
-        <div class="p-4 sm:p-6 mt-10 bg-white rounded-xl shadow">
+        {{-- KONTEN INVENTORY --}}
+        <div class="p-4 sm:p-6 bg-white rounded-xl shadow">
 
             {{-- FILTER --}}
             @if(Auth::user()->role !== 'outlet')
             <div class="bg-gray-50 p-4 rounded-lg border mb-6">
                 <form method="GET" action="{{ route('dashboard') }}">
-                    <input type="hidden" name="tab" value="{{ $activeTab ?? 'inventory' }}">
-
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
                         <div>
                             <label class="block text-sm font-medium mb-1">Outlet</label>
                             <select name="outlet"
@@ -96,13 +97,13 @@ function formatAngka($value) {
                                 Filter
                             </button>
                         </div>
+
                     </div>
                 </form>
             </div>
             @endif
 
-            {{-- ================= INVENTORY ================= --}}
-            @if(($activeTab ?? 'inventory') == 'inventory')
+            {{-- TABEL INVENTORY --}}
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm text-left text-gray-600">
                     <thead class="bg-gray-100 uppercase">
@@ -144,14 +145,10 @@ function formatAngka($value) {
                                 </td>
                             </tr>
                         @endif
+
                     </tbody>
                 </table>
             </div>
-
-            {{-- ================= HISTORY ================= --}}
-            @else
-                @include('bahans._history_table', ['history' => $history])
-            @endif
 
         </div>
     </div>
