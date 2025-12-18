@@ -9,13 +9,15 @@ class Marinasi extends Model
 {
     use HasFactory;
 
-    protected $table = 'marinasi'; // sesuai dengan migration
+    protected $table = 'marinasi';
 
     protected $fillable = [
-        'daging_ayam',
-        'saus_teriyaki',
-        'bawang_putih',
+        'kode_batch',
+        'total_ayam',
+        'jumlah_batch',
         'lada',
+        'bawang_putih',
+        'saus_teriyaki',
         'garam',
         'ketumbar',
     ];
