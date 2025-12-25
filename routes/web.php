@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BahanController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\MarinasiController;
+use App\Http\Controllers\ProduksiBumbuController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,13 +42,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/outlets', [OutletController::class, 'index'])->name('outlets.index');
 
     // Route untuk fitur Marinasi
-    Route::get('/marinasi', [MarinasiController::class, 'index'])->name('marinasi.index');
-    Route::post('/marinasi', [MarinasiController::class, 'store'])->name('marinasi.store');
+    Route::get('/marinasi', [MarinasiController::class, 'index'])
+        ->name('marinasi.index');
 
+    Route::post(
+        '/produksi/marinasi/use',
+        [MarinasiController::class, 'storeOnlyItems']
+    )->name('produksi.marinasi.use');
+
+    Route::post(
+    '/produksi/bumbu/use',
+    [MarinasiController::class, 'store']
+    )->name('produksi.bumbu.use');
+
+    Route::get('/marinasi/produksi', [MarinasiController::class, 'produksi'])
+    ->name('marinasi.produksi');
+
+    Route::post('/marinasi/produksi/marinasi',
+    [MarinasiController::class, 'submitMarinasi']
+    )->name('produksi.marinasi.submit');
+
+    Route::post('/marinasi/produksi/lapis',
+        [MarinasiController::class, 'submitLapis']
+    )->name('produksi.lapis.submit');
+
+    
     // Route untuk Profile (bawaan Breeze)
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
 });
 
 // Memuat route untuk autentikasi (login, register, dll.)

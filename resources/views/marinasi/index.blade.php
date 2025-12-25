@@ -1,208 +1,212 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-@php
-/**
- * FORMAT ANGKA INDONESIA
- */
-function formatAngka($v) {
-    if ($v === null) return '0';
-    $v = (float)$v;
-    return rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
-}
+    {{-- ===================== NOTIFIKASI ===================== --}}
+    @if(session('success'))
+        <div class="mb-6 p-4 rounded-lg bg-green-100 text-green-800 border">
+            {{ session('success') }}
+        </div>
+    @endif
 
-/**
- * RASIO BAHAN PER 1 AYAM
- * 👉 SILAKAN UBAH SESUAI KEBUTUHAN
- */
-$ratio = [
-    'lada'          => 2,    // kg
-    'gula'          => 1,    // kg
-    'bawang_putih'  => 0.5,  // kg
-    'saus_teriyaki' => 0.3,  // kg
-    'garam'         => 0.2,
-    'ketumbar'      => 0.1,
-];
+    {{-- ===================== HEADER ===================== --}}
+    <div class="mb-8">
+        <h1 class="text-xl sm:text-2xl font-bold mb-4">
+            Produksi Tepung Marinasi & Tepung Lapis
+        </h1>
 
-$labels = [
-    'lada'          => 'Lada',
-    'gula'          => 'Gula',
-    'bawang_putih'  => 'Bawang Putih',
-    'saus_teriyaki' => 'Saus Teriyaki',
-    'garam'         => 'Garam',
-    'ketumbar'      => 'Ketumbar',
-];
-@endphp
+        {{-- TAB NAVIGATION --}}
+        <div class="inline-flex rounded-xl bg-gray-200 p-1">
+            <a
+                href="{{ route('marinasi.index') }}"
+                class="px-3 sm:px-4 py-1.5 text-sm rounded-lg transition-all duration-200
+                {{ request()->routeIs('marinasi.index')
+                    ? 'bg-white text-black shadow-md font-medium'
+                    : 'text-gray-600 hover:bg-gray-300' }}"
+            >
+                Masukkan Bumbu
+            </a>
 
-<div class="max-w-4xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-6">🍗 Marinasi (Batch System)</h1>
-
-    {{-- INPUT UTAMA --}}
-    <div class="bg-white border rounded-lg p-4 mb-6">
-        <h2 class="font-semibold mb-4">Input Produksi</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">
-                    Jumlah Ayam (pcs)
-                </label>
-                <input type="text"
-                       id="jumlahAyam"
-                       class="w-full border rounded p-2"
-                       placeholder="Contoh: 10"
-                       autocomplete="off">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium mb-1">
-                    Jumlah Batch / Karung
-                </label>
-                <input type="number"
-                       id="jumlahBatch"
-                       min="1"
-                       value="1"
-                       class="w-full border rounded p-2">
-            </div>
+            <a
+                href="{{ route('marinasi.produksi') }}"
+                class="px-3 sm:px-4 py-1.5 text-sm rounded-lg transition-all duration-200
+                {{ request()->routeIs('marinasi.produksi')
+                    ? 'bg-white text-black shadow-md font-medium'
+                    : 'text-gray-600 hover:bg-gray-300' }}"
+            >
+                Gunakan Bumbu & History
+            </a>
         </div>
     </div>
 
-    {{-- HASIL KONVERSI --}}
-    <form id="formMarinasi" method="POST" action="{{ route('marinasi.store') }}">
-        @csrf
+    @php
+        $berulang = ['C','J','L','M','N'];
+    @endphp
 
-        <input type="hidden" name="total_ayam" id="totalAyamHidden">
-        <input type="hidden" name="jumlah_batch" id="batchHidden">
+    {{-- ================= GRID FORM ================= --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
-        <div class="bg-gray-50 border rounded-lg p-4">
-            <h2 class="font-semibold mb-4">Hasil Perhitungan Bahan</h2>
+        {{-- ================= FORM MARINASI ================= --}}
+        <form method="POST"
+              action="{{ route('produksi.marinasi.use') }}"
+              onsubmit="return confirmBahan(this, 'Marinasi')"
+              class="border rounded-xl p-5">
+            @csrf
 
-            <table class="min-w-full text-sm border">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="p-2 border text-left">Bahan</th>
-                        <th class="p-2 border text-right">Total</th>
-                        <th class="p-2 border text-right">Per Batch</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($ratio as $key => $perAyam)
-                    <tr>
-                        <td class="p-2 border">{{ $labels[$key] }}</td>
+            <input type="hidden" name="jenis_form" value="marinasi">
 
-                        <td class="p-2 border text-right font-semibold">
-                            <span id="total_{{ $key }}">0</span> kg
-                        </td>
+            <h2 class="text-base sm:text-lg font-semibold mb-6 border-b pb-2">
+                Tepung Marinasi (A – O)
+            </h2>
 
-                        <td class="p-2 border text-right">
-                            <span id="batch_{{ $key }}">0</span> kg
-                        </td>
+            <div class="space-y-4">
+                @foreach(range('A','O') as $huruf)
+                    <div class="p-4 rounded-lg bg-gray-50 border">
+                        <div class="mb-2 font-medium text-gray-800 text-sm">
+                            {{ in_array($huruf, $berulang)
+                                ? "Marinasi & Lapis $huruf"
+                                : "Marinasi $huruf" }}
+                        </div>
 
-                        <input type="hidden" name="{{ $key }}" id="input_{{ $key }}">
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">
+                                    Jumlah (gr)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="marinasi[{{ $huruf }}]"
+                                    class="bahan-input w-full border rounded-md px-3 py-2
+                                    focus:outline-none focus:ring-1 focus:ring-gray-400"
+                                >
+                            </div>
 
-        <div class="mt-6 hidden" id="btnSimpan">
-            <button type="submit"
-                    class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Simpan Batch Marinasi
-            </button>
-        </div>
-    </form>
-</div>
-{{-- ========================= --}}
-{{-- TABEL RIWAYAT BATCH --}}
-{{-- ========================= --}}
-<div class="bg-white border rounded-lg p-4 mb-6">
-    <h2 class="text-lg font-semibold mb-4">
-        📦 Riwayat Batch Marinasi
-    </h2>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">
+                                    Sisa Stok (gr)
+                                </label>
+                                <input
+                                    type="text"
+                                    readonly
+                                    value="{{ number_format($stok[$huruf] ?? 0, 2, ',', '.') }}"
+                                    class="w-full text-center bg-gray-100 border rounded-md
+                                    px-3 py-2 text-gray-600"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm border">
-            <thead class="bg-gray-100 text-center">
-                <tr>
-                    <th class="p-2 border">Kode Batch</th>
-                    <th class="p-2 border">Total Ayam</th>
-                    <th class="p-2 border">Jumlah Batch</th>
-                    <th class="p-2 border">Tanggal</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($batches as $batch)
-                    <tr class="text-center hover:bg-gray-50">
-                        <td class="p-2 border font-semibold">
-                            {{ $batch->kode_batch }}
-                        </td>
-                        <td class="p-2 border">
-                            {{ number_format($batch->total_ayam, 0, ',', '.') }} pcs
-                        </td>
-                        <td class="p-2 border">
-                            {{ $batch->jumlah_batch }} karung
-                        </td>
-                        <td class="p-2 border text-xs text-gray-600">
-                            {{ $batch->created_at->format('d M Y H:i') }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4"
-                            class="p-4 text-center text-gray-500">
-                            Belum ada batch marinasi.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+            <div class="mt-8">
+                <button
+                    type="submit"
+                    class="w-full bg-black text-white py-3 rounded-lg
+                    hover:bg-gray-800 transition"
+                >
+                    Simpan Marinasi
+                </button>
+            </div>
+        </form>
+
+        {{-- ================= FORM LAPIS ================= --}}
+        <form method="POST"
+              action="{{ route('produksi.marinasi.use') }}"
+              onsubmit="return confirmBahan(this, 'Lapis')"
+              class="border rounded-xl p-5">
+            @csrf
+
+            <input type="hidden" name="jenis_form" value="lapis">
+
+            <h2 class="text-base sm:text-lg font-semibold mb-6 border-b pb-2">
+                Tepung Lapis (C, J, L, M, N, P – S)
+            </h2>
+
+            <div class="space-y-4">
+                @foreach(range('P','S') as $huruf)
+                    <div class="p-4 rounded-lg bg-gray-50 border">
+                        <div class="mb-2 font-medium text-gray-800 text-sm">
+                            {{ in_array($huruf, $berulang)
+                                ? "Marinasi & Lapis $huruf"
+                                : "Lapis $huruf" }}
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">
+                                    Jumlah (gr)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="lapis[{{ $huruf }}]"
+                                    class="bahan-input w-full border rounded-md px-3 py-2
+                                    focus:outline-none focus:ring-1 focus:ring-gray-400"
+                                >
+                            </div>
+
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">
+                                    Sisa Stok (gr)
+                                </label>
+                                <input
+                                    type="text"
+                                    readonly
+                                    value="{{ number_format($stok[$huruf] ?? 0, 2, ',', '.') }}"
+                                    class="w-full text-center bg-gray-100 border rounded-md
+                                    px-3 py-2 text-gray-600"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="mt-8">
+                <button
+                    type="submit"
+                    class="w-full bg-black text-white py-3 rounded-lg
+                    hover:bg-gray-800 transition"
+                >
+                    Simpan Lapisan
+                </button>
+            </div>
+        </form>
+
     </div>
 </div>
 
-{{-- SCRIPT --}}
+{{-- ================= SCRIPT KONFIRMASI (TETAP) ================= --}}
 <script>
-const ratio = @json($ratio);
+function confirmBahan(form, jenis) {
+    const inputs = form.querySelectorAll('.bahan-input');
+    let list = [];
+    let total = 0;
 
-function formatID(num) {
-    return num.toLocaleString('id-ID', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2
+    inputs.forEach(input => {
+        const val = parseFloat(input.value);
+        if (val > 0) {
+            const name = input.name.match(/\[(.*?)\]/)[1];
+            list.push(`• ${name} : ${val} gr`);
+            total += val;
+        }
     });
-}
 
-const ayamInput  = document.getElementById('jumlahAyam');
-const batchInput = document.getElementById('jumlahBatch');
-const btnSimpan  = document.getElementById('btnSimpan');
-
-function hitung() {
-    let ayam  = ayamInput.value.replace(/[^0-9]/g,'');
-    let batch = parseInt(batchInput.value || 1);
-
-    if (!ayam || batch < 1) {
-        btnSimpan.classList.add('hidden');
-        return;
+    if (list.length === 0) {
+        alert('Tidak ada bahan yang diisi.');
+        return false;
     }
 
-    ayam = parseInt(ayam);
+    const message =
+        `Konfirmasi ${jenis}\n\n` +
+        `Bahan yang dimasukkan:\n` +
+        list.join('\n') +
+        `\n\nTotal: ${total.toLocaleString('id-ID')} gr\n\n` +
+        `Lanjutkan penyimpanan?`;
 
-    document.getElementById('totalAyamHidden').value = ayam;
-    document.getElementById('batchHidden').value = batch;
-
-    Object.keys(ratio).forEach(key => {
-        let total = ayam * ratio[key];
-        let perBatch = total / batch;
-
-        document.getElementById('total_' + key).innerText  = formatID(total);
-        document.getElementById('batch_' + key).innerText  = formatID(perBatch);
-        document.getElementById('input_' + key).value = total;
-    });
-
-    btnSimpan.classList.remove('hidden');
+    return confirm(message);
 }
-
-ayamInput.addEventListener('input', hitung);
-batchInput.addEventListener('input', hitung);
 </script>
-
 @endsection
