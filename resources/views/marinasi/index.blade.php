@@ -77,6 +77,9 @@
                                 <input
                                     type="number"
                                     step="0.01"
+                                    min="0"
+                                    inputmode="decimal"
+                                    oninput="this.value = this.value < 0 ? 0 : this.value"
                                     name="marinasi[{{ $huruf }}]"
                                     class="bahan-input w-full border rounded-md px-3 py-2
                                     focus:outline-none focus:ring-1 focus:ring-gray-400"
@@ -141,6 +144,9 @@
                                 <input
                                     type="number"
                                     step="0.01"
+                                    min="0"
+                                    inputmode="decimal"
+                                    oninput="this.value = this.value < 0 ? 0 : this.value"
                                     name="lapis[{{ $huruf }}]"
                                     class="bahan-input w-full border rounded-md px-3 py-2
                                     focus:outline-none focus:ring-1 focus:ring-gray-400"
@@ -178,7 +184,7 @@
     </div>
 </div>
 
-{{-- ================= SCRIPT KONFIRMASI (TETAP) ================= --}}
+{{-- ================= SCRIPT KONFIRMASI & VALIDASI ================= --}}
 <script>
 function confirmBahan(form, jenis) {
     const inputs = form.querySelectorAll('.bahan-input');
@@ -187,7 +193,7 @@ function confirmBahan(form, jenis) {
 
     inputs.forEach(input => {
         const val = parseFloat(input.value);
-        if (val > 0) {
+        if (!isNaN(val) && val > 0) {
             const name = input.name.match(/\[(.*?)\]/)[1];
             list.push(`• ${name} : ${val} gr`);
             total += val;
@@ -208,5 +214,22 @@ function confirmBahan(form, jenis) {
 
     return confirm(message);
 }
+
+// ===== BLOK NILAI MINUS & HURUF =====
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.bahan-input').forEach(input => {
+        input.addEventListener('keydown', function (e) {
+            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+            }
+        });
+
+        input.addEventListener('change', function () {
+            if (this.value < 0) {
+                this.value = 0;
+            }
+        });
+    });
+});
 </script>
 @endsection

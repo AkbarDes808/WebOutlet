@@ -22,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
          * Redirect user setelah login
          */
         $middleware->redirectTo(users: '/dashboard');
+        
+         $middleware->alias([
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

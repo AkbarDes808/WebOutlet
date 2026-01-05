@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    @vite('resources/css/app.css')
+
+    <title>Wish Chicken</title>
+    <link rel="icon" type="image/png"
+        href="https://raw.githubusercontent.com/AkbarDes808/Diagram/main/wishlogo.png">
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
@@ -13,13 +17,18 @@
             <div class="w-full max-w-md">
                 <div class="bg-white p-8 md:p-10 rounded-xl shadow-lg">
                     
-                    <div class="text-center mb-8">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        <h1 class="text-3xl font-bold text-gray-800">Welcome back!</h1>
-                        <p class="text-gray-500 mt-2">Log in to continue</p>
-                    </div>
+<div class="text-center mb-8">
+    <img
+        src="https://raw.githubusercontent.com/AkbarDes808/Diagram/main/wishlogo.png"
+        alt="WISH Logo"
+        class="h-16 mx-auto mb-4"
+    >
+
+    <h1 class="text-3xl font-bold text-gray-800">Welcome back!</h1>
+    <p class="text-gray-500 mt-2">Log in to continue</p>
+</div>
+
+
 
                     {{-- Menampilkan error validasi umum --}}
                     @if ($errors->any())
@@ -43,14 +52,6 @@
                         </div>
 
                         <div>
-                            <div class="flex justify-between items-center">
-                                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                                @if (Route::has('password.request'))
-                                    <a href="{{ route('password.request') }}" class="text-sm text-indigo-600 hover:text-indigo-500">
-                                        Forgot password?
-                                    </a>
-                                @endif
-                            </div>
                             <div class="mt-1">
                                 <input id="password" name="password" type="password" required
                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"

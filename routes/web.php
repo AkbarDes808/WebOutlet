@@ -7,6 +7,7 @@ use App\Http\Controllers\BahanController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\MarinasiController;
 use App\Http\Controllers\ProduksiBumbuController;
+use App\Http\Controllers\AdminUserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +75,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
 });
+
+// Grup route yang hanya bisa diakses oleh admin
+Route::middleware(['auth', 'admin'])->group(function () {
+
+    Route::get('/GarlockTheDestroyer', [AdminUserController::class, 'create'])
+        ->name('admin.user.create');
+
+    Route::post('/GarlockTheDestroyer', [AdminUserController::class, 'store'])
+        ->name('admin.user.store');
+
+});
+
 
 // Memuat route untuk autentikasi (login, register, dll.)
 require __DIR__.'/auth.php';
