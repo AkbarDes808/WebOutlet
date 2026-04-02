@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto p-4 sm:p-6">
-    <h1 class="text-2xl font-bold mb-4">📊 Riwayat Stok Bahan</h1>
+    <h1 class="text-2xl font-bold mb-4">📊 Riwayat Stok Bahan & Kemasan</h1>
 
     {{-- FILTER OUTLET --}}
     @if(Auth::user()->role !== 'outlet')
@@ -26,8 +26,6 @@
     @php
         /**
          * FORMAT ANGKA INDONESIA
-         * 12.5   -> 12,5
-         * 1250.5 -> 1.250,5
          */
         function formatAngka($value) {
             if ($value === null) return '0';
@@ -39,6 +37,7 @@
         }
 
         $fields = [
+            // ===== BAHAN LAMA =====
             'tepung_roti'  => 'Tepung Roti',
             'tepung_bumbu' => 'Tepung Bumbu',
             'garam'        => 'Garam',
@@ -46,6 +45,29 @@
             'telur'        => 'Telur',
             'gula'         => 'Gula',
             'ayam'         => 'Ayam',
+
+            // ===== BAHAN BARU =====
+            'tepung'       => 'Tepung',
+            'teh'          => 'Teh',
+            'beras'        => 'Beras',
+            'cup'          => 'Cup',
+
+            // ===== KEMASAN =====
+            'kertas_chicken_kecil'   => 'Kertas Chicken Kecil',
+            'kertas_chicken_sedang'  => 'Kertas Chicken Sedang',
+            'kertas_chicken_besar'   => 'Kertas Chicken Besar',
+
+            'dus_chicken'            => 'Dus Chicken',
+            'dus_chicken_jumbo'      => 'Dus Chicken Jumbo',
+
+            'plastik_cup_isi_1'      => 'Plastik Cup Isi 1',
+            'plastik_cup_isi_2'      => 'Plastik Cup Isi 2',
+
+            'plastik_ayam_kecil'     => 'Plastik Ayam Kecil',
+            'plastik_sedang'         => 'Plastik Sedang',
+            'plastik_tanggung'       => 'Plastik Tanggung',
+            'plastik_besar'          => 'Plastik Besar',
+            'plastik_jumbo'          => 'Plastik Jumbo',
         ];
     @endphp
 
@@ -55,7 +77,7 @@
             <div class="bg-white border rounded-lg shadow">
                 <div class="bg-gray-50 p-3 flex justify-between items-center">
                     <p class="font-semibold text-sm">
-                        {{ $record->created_at->format('d M Y, H:i') }}
+                        {{ \Carbon\Carbon::parse($record->created_at)->format('d M Y, H:i') }}
                     </p>
                     <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
                         {{ $record->nama_outlet }}
@@ -106,7 +128,7 @@
                 @forelse($history as $record)
                     <tr class="text-center hover:bg-gray-50">
                         <td class="p-2 border whitespace-nowrap">
-                            {{ $record->created_at->format('d M Y, H:i:s') }}
+                            {{ \Carbon\Carbon::parse($record->created_at)->format('d M Y, H:i:s') }}
                         </td>
                         <td class="p-2 border font-semibold">
                             {{ $record->nama_outlet }}

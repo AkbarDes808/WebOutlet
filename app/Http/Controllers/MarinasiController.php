@@ -19,7 +19,7 @@ class MarinasiController extends Controller
 
         foreach ($hurufList as $huruf) {
             $stok[$huruf] = DB::table('marinasi_items')
-                ->where('nama_bahan', 'LIKE', '% ' . $huruf)
+                ->where('bahan', 'LIKE', '% ' . $huruf)
                 ->sum('total');
         }
 
@@ -38,9 +38,9 @@ class MarinasiController extends Controller
             ->get();
 
         $totalPerBahan = DB::table('marinasi_items')
-            ->select('nama_bahan', DB::raw('SUM(total) as total_sisa'))
-            ->groupBy('nama_bahan')
-            ->pluck('total_sisa', 'nama_bahan');
+            ->select('bahan', DB::raw('SUM(total) as total_sisa'))
+            ->groupBy('bahan')
+            ->pluck('total_sisa', 'bahan');
 
         return view('marinasi.produksi', compact('history', 'totalPerBahan'));
     }
@@ -81,7 +81,7 @@ class MarinasiController extends Controller
 
             DB::table('marinasi_items')->insert([
                 'marinasi_id' => $marinasiId,
-                'nama_bahan'  => $namaBahan,
+                'bahan'  => $namaBahan,
                 'jenis'       => $jenisBumbu, // 🔥 INI KUNCINYA
                 'penggunaan'  => 'Tambah Stok',
                 'banyak'      => $jumlah,
@@ -139,7 +139,7 @@ class MarinasiController extends Controller
 
             DB::table('marinasi_items')->insert([
                 'marinasi_id' => $marinasiId,
-                'nama_bahan'  => $namaBahan,
+                'bahan'  => $namaBahan,
                 'jenis'       => 'Bumbu Tepung Marinasi',
                 'penggunaan'  => 'Ayam',
                 'banyak'      => $jumlahAyam,
@@ -190,7 +190,7 @@ class MarinasiController extends Controller
 
             DB::table('marinasi_items')->insert([
                 'marinasi_id' => $marinasiId,
-                'nama_bahan'  => $namaBahan,
+                'bahan'  => $namaBahan,
                 'jenis'       => 'Bumbu Tepung Lapis',
                 'penggunaan'  => 'Simpan Karung',
                 'banyak'      => $jumlahKg,

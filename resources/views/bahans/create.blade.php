@@ -1,107 +1,67 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-4xl mx-auto p-6">
-    <!-- Card Form -->
+<div class="max-w-6xl mx-auto p-6">
     <div class="bg-white shadow-lg rounded-xl p-6">
-        <!-- Header -->
-        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-            <i class="fa-solid fa-plus-circle text-indigo-600"></i>
-            Tambah Bahan Baru
+        <h2 class="text-2xl font-bold mb-6">
+            ➕ Tambah Stok Bahan
         </h2>
 
-        <!-- Form -->
-        <form action="{{ route('bahans.store') }}" method="POST" class="space-y-6">
+        <form action="{{ route('bahans.store') }}" method="POST">
             @csrf
 
-            <!-- Outlet -->
-            <div>
-                <label for="nama_outlet" class="block text-sm font-medium text-gray-700 mb-1">Pilih Outlet</label>
-                <select name="nama_outlet" id="nama_outlet"
-                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            {{-- OUTLET --}}
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-1">Outlet</label>
+                <select name="nama_outlet" class="w-full border rounded-lg p-2">
                     <option value="" disabled selected>-- Pilih Outlet --</option>
-                    <option value="Outlet 1">Outlet 1</option>
-                    <option value="Outlet 2">Outlet 2</option>
-                    <option value="Outlet 3">Outlet 3</option>
-                    <option value="Outlet 4">Outlet 4</option>
-                    <option value="Outlet 5">Outlet 5</option>
+                    <option>Outlet 1</option>
+                    <option>Outlet 2</option>
+                    <option>Outlet 3</option>
                 </select>
-                @error('nama_outlet')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
-            <!-- Grid Input -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <!-- Tepung Bumbu -->
-                <div>
-                    <label for="tepung_bumbu" class="block text-sm font-medium text-gray-700">Tepung Bumbu</label>
-                    <input type="number" name="tepung_bumbu" id="tepung_bumbu" min="0" value="0"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('tepung_bumbu')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+            @php
+                $inputs = [
+                    'ayam' => 'Ayam',
+                    'tepung' => 'Tepung',
+                    'gula' => 'Gula',
+                    'teh' => 'Teh',
+                    'beras' => 'Beras',
+                    'cup' => 'Cup',
+                    'kertas_chicken_kecil' => 'Kertas Chicken Kecil',
+                    'kertas_chicken_sedang' => 'Kertas Chicken Sedang',
+                    'kertas_chicken_besar' => 'Kertas Chicken Besar',
+                    'dus_chicken' => 'Dus Chicken',
+                    'dus_chicken_jumbo' => 'Dus Chicken Jumbo',
+                    'plastik_cup_1' => 'Plastik Cup Isi 1',
+                    'plastik_cup_2' => 'Plastik Cup Isi 2',
+                    'plastik_ayam_kecil' => 'Plastik Ayam Kecil',
+                    'plastik_sedang' => 'Plastik Sedang',
+                    'plastik_tanggung' => 'Plastik Tanggung',
+                    'plastik_besar' => 'Plastik Besar',
+                    'plastik_jumbo' => 'Plastik Jumbo',
+                ];
+            @endphp
 
-                <!-- Garam -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach($inputs as $name => $label)
                 <div>
-                    <label for="garam" class="block text-sm font-medium text-gray-700">Garam</label>
-                    <input type="number" name="garam" id="garam" min="0" value="0"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('garam')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
+                    <label class="block text-sm font-medium">{{ $label }}</label>
+                    <input type="number" name="{{ $name }}" min="0" value="0"
+                        class="w-full border rounded-lg p-2">
                 </div>
-
-                <!-- Bubuk Cabe -->
-                <div>
-                    <label for="bubuk_cabe" class="block text-sm font-medium text-gray-700">Bubuk Cabe</label>
-                    <input type="number" name="bubuk_cabe" id="bubuk_cabe" min="0" value="0"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('bubuk_cabe')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Telur -->
-                <div>
-                    <label for="telur" class="block text-sm font-medium text-gray-700">Telur</label>
-                    <input type="number" name="telur" id="telur" min="0" value="0"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('telur')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Gula -->
-                <div>
-                    <label for="gula" class="block text-sm font-medium text-gray-700">Gula</label>
-                    <input type="number" name="gula" id="gula" min="0" value="0"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('gula')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Ayam -->
-                <div>
-                    <label for="ayam" class="block text-sm font-medium text-gray-700">Ayam</label>
-                    <input type="number" name="ayam" id="ayam" min="0" value="0"
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('ayam')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+                @endforeach
             </div>
 
-            <!-- Submit Button -->
-            <div class="flex justify-end">
-                <a href="{{ route('dashboard') }}" class="mr-4 inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300">
-                    <i class="fa-solid fa-arrow-left mr-2"></i> Kembali
+            <div class="flex justify-end mt-6">
+                <a href="{{ route('dashboard') }}"
+                   class="mr-4 px-4 py-2 bg-gray-200 rounded-lg">
+                    Kembali
                 </a>
                 <button type="submit"
-                        class="inline-flex items-center px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fa-solid fa-save mr-2"></i> Simpan
+                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg">
+                    Simpan
                 </button>
             </div>
         </form>

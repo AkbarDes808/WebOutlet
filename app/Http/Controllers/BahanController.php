@@ -2,158 +2,173 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Bahan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 
 class BahanController extends Controller
 {
-    private array $fields = [
-        'tepung_roti','tepung_bumbu','garam',
-        'bubuk_cabe','telur','gula','ayam'
+    private array $rows = [
+        'tepung_roti',
+        'tepung_bumbu',
+        'garam',
+        'bubuk_cabe',
+        'telur',
+        'gula',
+        'ayam',
+
+        'tepung',
+        'teh',
+        'beras',
+        'cup',
+
+        'kertas_chicken_kecil',
+        'kertas_chicken_sedang',
+        'kertas_chicken_besar',
+        'dus_chicken',
+        'dus_chicken_jumbo',
+        'plastik_cup_isi_1',
+        'plastik_cup_isi_2',
+        'plastik_ayam_kecil',
+        'plastik_sedang',
+        'plastik_tanggung',
+        'plastik_besar',
+        'plastik_jumbo',
     ];
 
-    // ======================
-    // INDEX
-    // ======================
+    /* =====================================
+     * INDEX
+     * ===================================== */
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $outlets = DB::table('bahans')
+            ->select('nama_outlet')
+            ->distinct()
+            ->orderBy('nama_outlet')
+            ->pluck('nama_outlet');
 
-        if ($user->role === 'outlet') {
-            $selectedOutlet = trim($user->name);
-            $outlets = collect([$selectedOutlet]);
-        } else {
-            $selectedOutlet = $request->input('outlet');
-            $outlets = Bahan::select('nama_outlet')->distinct()->pluck('nama_outlet');
+        $selectedOutlet = $request->outlet;
+
+        // 🔥 Ambil ID terakhir per outlet
+        $latestIds = DB::table('bahans')
+            ->select(DB::raw('MAX(id) as id'))
+            ->groupBy('nama_outlet')
+            ->pluck('id');
+
+        $latestStocks = DB::table('bahans')
+            ->whereIn('id', $latestIds)
+            ->get();
+
+        $totalStok = [];
+        foreach ($this->rows as $field) {
+            $totalStok[$field] = $latestStocks->sum($field);
         }
 
-        $viewData = compact('outlets', 'selectedOutlet');
+        $totalStok = (object) $totalStok;
+
+        $bahan = null;
 
         if ($selectedOutlet) {
-            $bahan = Bahan::where('id', function ($q) use ($selectedOutlet) {
-                $q->select(DB::raw('MAX(id)'))
-                  ->from('bahans')
-                  ->where('nama_outlet', $selectedOutlet);
-            })->first();
-
-            $viewData['bahan'] = $bahan;
-        } else {
-            if ($outlets->isNotEmpty()) {
-                $latestIds = Bahan::select(DB::raw('MAX(id) as id'))
-                    ->groupBy('nama_outlet')
-                    ->pluck('id');
-
-                $latestStocks = Bahan::whereIn('id', $latestIds)->get();
-
-                $total = [];
-                foreach ($this->fields as $f) {
-                    $total[$f] = $latestStocks->sum($f);
-                }
-
-                $viewData['totalStok'] = (object) $total;
-            }
+            $bahan = DB::table('bahans')
+                ->where('nama_outlet', $selectedOutlet)
+                ->orderByDesc('id')
+                ->first();
         }
 
-        return view('bahans.index', $viewData);
+        return view('bahans.index', compact(
+            'outlets',
+            'selectedOutlet',
+            'bahan',
+            'totalStok'
+        ));
     }
 
-    // ======================
-    // STORE (DESIMAL AMAN)
-    // ======================
-public function store(Request $request)
-{
-    $request->validate([
-        'nama_outlet' => 'required|string|max:255'
-    ]);
+    /* =====================================
+     * STORE (BUAT RECORD BARU)
+     * ===================================== */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_outlet' => 'required|string'
+        ]);
 
-    $outlet = trim($request->nama_outlet);
+        $outlet = $request->nama_outlet;
 
-    $lastStock = Bahan::where('id', function ($q) use ($outlet) {
-        $q->select(DB::raw('MAX(id)'))
-          ->from('bahans')
-          ->where('nama_outlet', $outlet);
-    })->first();
+        $last = DB::table('bahans')
+            ->where('nama_outlet', $outlet)
+            ->orderByDesc('id')
+            ->first();
 
-    $data = ['nama_outlet' => $outlet];
+        $data = [
+            'nama_outlet' => $outlet,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
 
-    foreach ($this->fields as $field) {
+        foreach ($this->rows as $field) {
 
-        $input = $request->input($field);
-        $delta = 0.0;
+            $input = $request->input($field);
 
-        if ($input !== null && $input !== '' && $input !== '-') {
-
-            /**
-             * INPUT SUDAH DALAM FORMAT:
-             * 12,5 → JS → 12.5
-             * MAKA TINGGAL CAST FLOAT
-             */
-            if (!is_numeric($input)) {
-                // fallback keamanan
+            if ($input !== null && $input !== '') {
                 $input = str_replace(',', '.', $input);
+                $delta = (float) $input;
+            } else {
+                $delta = 0;
             }
 
-            $delta = (float) $input;
+            $lastValue = $last ? ($last->$field ?? 0) : 0;
 
-            // outlet selalu minus
-            if (Auth::user()->role === 'outlet') {
-                $delta = -abs($delta);
-            }
+            $data[$field] = $lastValue + $delta;
         }
 
-        $last = $lastStock ? (float) $lastStock->$field : 0.0;
-        $data[$field] = $last + $delta;
+        DB::table('bahans')->insert($data);
+
+        return redirect()->back()->with('success', 'Stok berhasil disimpan');
     }
 
-    Bahan::create($data);
-
-    return redirect()->back()->with('success', 'Stok berhasil diperbarui');
-}
-
-
-    // ======================
-    // HISTORY (DESIMAL AMAN)
-    // ======================
+    /* =====================================
+     * HISTORY
+     * ===================================== */
     public function history(Request $request)
     {
-        $user = Auth::user();
+        $outlets = DB::table('bahans')
+            ->select('nama_outlet')
+            ->distinct()
+            ->orderBy('nama_outlet')
+            ->pluck('nama_outlet');
 
-        if ($user->role === 'outlet') {
-            $selectedOutlet = trim($user->name);
-            $outlets = collect([$selectedOutlet]);
-        } else {
-            $selectedOutlet = $request->input('outlet');
-            $outlets = Bahan::select('nama_outlet')->distinct()->pluck('nama_outlet');
-        }
+        $selectedOutlet = $request->outlet;
 
-        $historyQuery = Bahan::orderBy('id', 'asc');
+        $query = DB::table('bahans')
+            ->orderBy('id', 'asc');
 
         if ($selectedOutlet) {
-            $historyQuery->where('nama_outlet', $selectedOutlet);
+            $query->where('nama_outlet', $selectedOutlet);
         }
 
-        $history = $historyQuery->get();
+        $historyRaw = $query->get();
+
         $lastState = [];
         $processed = collect();
 
-        foreach ($history as $row) {
+        foreach ($historyRaw as $row) {
+
             $outlet = $row->nama_outlet;
             $prev = $lastState[$outlet] ?? null;
 
             $changes = [];
-            foreach ($this->fields as $f) {
-                $curr = (float) $row->$f;
-                $prevVal = $prev ? (float) $prev->$f : 0.0;
 
-                $changes[$f] = (object) [
+            foreach ($this->rows as $field) {
+
+                $curr = (float) ($row->$field ?? 0);
+                $prevVal = $prev ? (float) ($prev->$field ?? 0) : 0;
+
+                $changes[$field] = (object) [
                     'total'  => $curr,
                     'change' => $curr - $prevVal
                 ];
             }
 
-            $processed->push((object) [
+            $processed->push((object)[
                 'created_at' => $row->created_at,
                 'nama_outlet' => $outlet,
                 'data' => $changes
@@ -168,4 +183,5 @@ public function store(Request $request)
             'history' => $processed->reverse()
         ]);
     }
+
 }

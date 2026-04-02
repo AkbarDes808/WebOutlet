@@ -10,7 +10,7 @@ class MarinasiItem extends Model
 
     protected $fillable = [
         'marinasi_id',
-        'nama_bahan',
+        'bahan',
         'total',
         'per_batch',
     ];

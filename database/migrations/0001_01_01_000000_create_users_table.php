@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,22 +12,42 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // =========================
+        // USERS TABLE
+        // =========================
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // ROLE (PostgreSQL Safe)
+            $table->string('role')->default('outlet');
+
             $table->rememberToken();
             $table->timestamps();
         });
 
+        // Tambahkan CHECK constraint manual (PostgreSQL friendly)
+        DB::statement("
+            ALTER TABLE users
+            ADD CONSTRAINT users_role_check
+            CHECK (role IN ('admin','SPV','outlet'))
+        ");
+
+        // =========================
+        // PASSWORD RESET TOKENS
+        // =========================
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
+        // =========================
+        // SESSIONS TABLE
+        // =========================
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
@@ -42,8 +63,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

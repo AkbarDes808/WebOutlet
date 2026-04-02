@@ -150,7 +150,7 @@
 
     <tr class="border-b">
         <td class="px-4 py-3 whitespace-nowrap">{{ $waktu }}</td>
-        <td class="px-4 py-3">{{ $row->Jenis }}</td>
+        <td class="px-4 py-3">{{ $row->jenis }}</td>
         <td class="px-4 py-3">{{ $row->penggunaan }}</td>
         <td class="px-4 py-3">{{ number_format($banyak, 0, ',', '.') }}</td>
         <td class="px-4 py-3">{{ $satuan }}</td>

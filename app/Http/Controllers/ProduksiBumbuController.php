@@ -19,7 +19,7 @@ class ProduksiBumbuController extends Controller
                     if ($jumlah !== null && $jumlah > 0) {
                         MarinasiItem::create([
                             'marinasi_id' => null,
-                            'nama_bahan'  => 'Marinasi ' . $kode,
+                            'bahan'  => 'Marinasi ' . $kode,
                             'total'       => $jumlah,
                             'per_batch'   => 0,
                         ]);
@@ -33,7 +33,7 @@ class ProduksiBumbuController extends Controller
                     if ($jumlah !== null && $jumlah > 0) {
                         MarinasiItem::create([
                             'marinasi_id' => null,
-                            'nama_bahan'  => 'Lapis ' . $kode,
+                            'bahan'  => 'Lapis ' . $kode,
                             'total'       => $jumlah,
                             'per_batch'   => 0,
                         ]);
