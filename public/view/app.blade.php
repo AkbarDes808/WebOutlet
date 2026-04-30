@@ -7,6 +7,7 @@
     <title>Wish Chicken Dashboard</title>
 
     {{-- Vite untuk Tailwind CSS & JS --}}
+    <script src="https://cdn.tailwindcss.com"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     {{-- Link untuk Bootstrap Icons --}}

@@ -8,6 +8,8 @@ use App\Http\Controllers\OutletController;
 use App\Http\Controllers\MarinasiController;
 use App\Http\Controllers\ProduksiBumbuController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\KasirController;
+use App\Http\Controllers\TransactionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +25,14 @@ use App\Http\Controllers\AdminUserController;
 // Halaman Awal (Bisa halaman login atau landing page)
 Route::get('/', function () {
     return redirect()->route('login');
+});
+
+Route::get('/check-session', function () {
+    if (!auth()->check()) {
+        return response()->json(['message' => 'Unauthenticated'], 401);
+    }
+
+    return response()->json(['message' => 'OK']);
 });
 
 // Grup route yang hanya bisa diakses setelah login (middleware 'auth')
@@ -46,6 +56,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/marinasi', [MarinasiController::class, 'index'])
         ->name('marinasi.index');
 
+    // Route untuk kasir
+    Route::get('/kasir', [KasirController::class, 'index'])->name('kasir.index');
+
+    // Route untuk Transaksi Kasir
+    Route::post('/transactions', [TransactionController::class, 'store'])
+        ->name('transactions.store');
+    
+    // Route untuk riwayat transaksi
+    Route::get('/kasir/history', [TransactionController::class, 'history'])
+        ->name('kasir.history')
+        ->middleware('auth');
+        
     Route::post(
         '/produksi/marinasi/use',
         [MarinasiController::class, 'storeOnlyItems']
@@ -73,6 +95,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
 
 });
 
