@@ -54,7 +54,7 @@ $fields = [
             </a>
 
             {{-- MARINASI --}}
-            @if (!in_array(strtolower(Auth::user()->role), ['spv','outlet']))
+            @if (in_array(strtolower(Auth::user()->role), ['admin']))
             <a href="{{ route('marinasi.index') }}"
                class="p-6 bg-white shadow rounded-xl hover:shadow-md transition">
                 <div class="text-3xl mb-3">🍗</div>

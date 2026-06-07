@@ -90,6 +90,19 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
             <i class="fa-solid fa-receipt"></i>
             Riwayat Pesanan
         </a>
+        
+        <!-- Riwayat Shift -->
+        <a href="{{ route('shift.history') }}"
+        class="flex items-center gap-3 px-4 py-3 rounded-lg relative
+        {{ request()->routeIs('shift.history') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
+            
+            @if(request()->routeIs('shift.history'))
+            <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
+            @endif
+
+            <i class="fa-solid fa-cash-register"></i>
+            Riwayat Shift
+        </a>
 
         <!-- History (SUDAH DIPISAH) -->
         <a href="{{ route('bahans.history') }}"
@@ -121,16 +134,18 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
 
         <hr class="my-2">
 
-        <!-- Logout -->
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button
-            onclick="event.preventDefault(); this.closest('form').submit();"
+    <!-- Logout -->
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+
+        <button
+            type="submit"
             class="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-200 rounded-lg">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                Logout
-            </button>
-        </form>
+
+            <i class="fa-solid fa-right-from-bracket"></i>
+            Logout
+        </button>
+    </form>
 
     </nav>
 
