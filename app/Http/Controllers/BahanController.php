@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class BahanController extends Controller
 {
@@ -40,46 +41,135 @@ class BahanController extends Controller
      * ===================================== */
     public function index(Request $request)
     {
+
+        $user = Auth::user();
+
+
+        // cek user outlet
+        $isOutlet = preg_match('/^outlet\s\d+$/i', trim($user->role));
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | USER OUTLET
+        |--------------------------------------------------------------------------
+        */
+
+        if($isOutlet){
+
+
+            $selectedOutlet = trim($user->role);
+
+
+
+            // ambil hanya outlet login
+            $bahan = DB::table('bahans')
+                ->whereRaw('LOWER(nama_outlet) = ?', [
+                    strtolower($selectedOutlet)
+                ])
+                ->orderByDesc('id')
+                ->first();
+
+
+
+            return view('bahans.index',[
+
+                'outlets'=>collect(),
+
+                'selectedOutlet'=>$selectedOutlet,
+
+                'bahan'=>$bahan,
+
+                'totalStok'=>null
+
+            ]);
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / SPV
+        |--------------------------------------------------------------------------
+        */
+
+
         $outlets = DB::table('bahans')
             ->select('nama_outlet')
             ->distinct()
             ->orderBy('nama_outlet')
             ->pluck('nama_outlet');
 
+
+
+
         $selectedOutlet = $request->outlet;
 
-        // 🔥 Ambil ID terakhir per outlet
+
+
+
         $latestIds = DB::table('bahans')
             ->select(DB::raw('MAX(id) as id'))
             ->groupBy('nama_outlet')
             ->pluck('id');
 
+
+
+
         $latestStocks = DB::table('bahans')
-            ->whereIn('id', $latestIds)
+            ->whereIn('id',$latestIds)
             ->get();
 
-        $totalStok = [];
-        foreach ($this->rows as $field) {
-            $totalStok[$field] = $latestStocks->sum($field);
+
+
+
+        $totalStok=[];
+
+
+        foreach($this->rows as $field){
+
+            $totalStok[$field] =
+                $latestStocks->sum($field);
+
         }
 
-        $totalStok = (object) $totalStok;
 
-        $bahan = null;
+        $totalStok=(object)$totalStok;
 
-        if ($selectedOutlet) {
+
+
+        $bahan=null;
+
+
+
+        if($selectedOutlet){
+
+
             $bahan = DB::table('bahans')
-                ->where('nama_outlet', $selectedOutlet)
+                ->where(
+                    'nama_outlet',
+                    $selectedOutlet
+                )
                 ->orderByDesc('id')
                 ->first();
+
         }
 
-        return view('bahans.index', compact(
-            'outlets',
-            'selectedOutlet',
-            'bahan',
-            'totalStok'
-        ));
+
+
+
+        return view('bahans.index',[
+
+            'outlets'=>$outlets,
+
+            'selectedOutlet'=>$selectedOutlet,
+
+            'bahan'=>$bahan,
+
+            'totalStok'=>$totalStok
+
+        ]);
+
     }
 
     /* =====================================
@@ -142,7 +232,9 @@ class BahanController extends Controller
             ->orderBy('id', 'asc');
 
         if ($selectedOutlet) {
-            $query->where('nama_outlet', $selectedOutlet);
+            $query->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [
+    strtolower(trim($selectedOutlet))
+]);
         }
 
         $historyRaw = $query->get();

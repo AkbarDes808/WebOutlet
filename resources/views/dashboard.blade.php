@@ -72,12 +72,17 @@ $fields = [
             </a>
 
             {{-- OUTLETS --}}
-            @if(strtolower(Auth::user()->role) !== 'outlet')
+            @if(!str_contains(strtolower(Auth::user()->role), 'outlet'))
+
             <a href="{{ route('outlets.index') }}"
-               class="p-6 bg-white shadow rounded-xl hover:shadow-md transition">
+            class="p-6 bg-white shadow rounded-xl hover:shadow-md transition">
                 <div class="text-3xl mb-3">🏪</div>
-                <h2 class="font-semibold">Outlets</h2>
-                <p class="text-sm text-gray-500">Daftar outlet</p>
+                <h2 class="font-semibold">
+                    Outlets
+                </h2>
+                <p class="text-sm text-gray-500">
+                    Daftar outlet
+                </p>
             </a>
             @endif
         </div>

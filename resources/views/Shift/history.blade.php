@@ -118,9 +118,7 @@
 
             @php
 
-                $selisih =
-                    $shift->actual_cash -
-                    $shift->expected_cash;
+                $selisih = $shift->selisih;
 
                 if($shift->waktu_mulai < '12:00'){
                     $shiftLabel = 'Pagi';
@@ -188,9 +186,9 @@
                     </div>
 
                     <div class="flex justify-between">
-                        <span class="text-gray-500">Expected</span>
+                        <span class="text-gray-500">Actual Cash</span>
                         <span>
-                            Rp {{ number_format($shift->expected_cash,0,',','.') }}
+                            Rp {{ number_format($shift->actual_cash,0,',','.') }}
                         </span>
                     </div>
 
@@ -237,21 +235,21 @@
                     <button
                         type="button"
                         onclick="showDetail(
-                            '{{ \Carbon\Carbon::parse($shift->tanggal)->format('d M Y') }}',
-                            '{{ $shift->kasir }}',
-                            '{{ ucfirst($shift->outlet) }}',
-                            '{{ $shiftLabel }}',
-                            '{{ $shift->waktu_mulai }}',
-                            '{{ $shift->waktu_selesai }}',
-                            '{{ $shift->total_transaksi }}',
-                            '{{ number_format($shift->cash_total,0,',','.') }}',
-                            '{{ number_format($shift->qris_total,0,',','.') }}',
-                            '{{ number_format($shift->total_penjualan,0,',','.') }}',
-                            '{{ number_format($shift->expected_cash,0,',','.') }}',
-                            '{{ number_format($shift->actual_cash,0,',','.') }}',
-                            '{{ $shift->catatan ?? '-' }}',
-                            '{{ $selisih }}'
-                        )"
+                                '{{ \Carbon\Carbon::parse($shift->tanggal)->format('d M Y') }}',
+                                '{{ $shift->kasir }}',
+                                '{{ ucfirst($shift->outlet) }}',
+                                '{{ $shiftLabel }}',
+                                '{{ $shift->waktu_mulai }}',
+                                '{{ $shift->waktu_selesai }}',
+                                '{{ $shift->total_transaksi }}',
+                                '{{ number_format($shift->cash_total,0,',','.') }}',
+                                '{{ number_format($shift->qris_total,0,',','.') }}',
+                                '{{ number_format($shift->total_penjualan,0,',','.') }}',
+                                '{{ number_format($shift->uang_modal,0,',','.') }}',
+                                '{{ number_format($shift->pengeluaran_lainnya ?? 0,0,',','.') }}',
+                                '{{ number_format($shift->actual_cash,0,',','.') }}',
+                                '{{ $shift->catatan ?? '-' }}'
+                            )"
                         class="text-blue-600 hover:text-blue-800 font-medium">
                         Detail
                     </button>
@@ -273,40 +271,35 @@
         {{-- ========================= --}}
         {{-- DESKTOP TABLE --}}
         {{-- ========================= --}}
-        <div class="hidden md:block overflow-x-auto">
+        <div class="hidden md:block">
 
-            <table class="w-full text-sm">
+            <table class="w-full table-fixed text-sm border-collapse">
 
-                <thead class="border-b text-gray-500 uppercase text-xs">
+                <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
 
                     <tr>
 
-                        <th class="py-4 text-left">Tanggal</th>
-                        <th class="text-left">Outlet</th>
-                        <th class="text-left">Kasir</th>
-                        <th class="text-left">Shift</th>
-                        <th class="text-left">Pesanan</th>
-                        <th class="text-left">Cash</th>
-                        <th class="text-left">QRIS</th>
-                        <th class="text-left">Total</th>
-                        <th class="text-left">Expected</th>
-                        <th class="text-left">Aktual</th>
-                        <th class="text-left">Selisih</th>
-                        <th class="text-left">Aksi</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Tanggal</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Outlet</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Kasir</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Shift</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Pesanan</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Cash</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">QRIS</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Total</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Uang Modal</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Pengeluaran</th>
+                        <th class="px-3 py-3 border border-gray-200 text-left">Aksi</th>
 
                     </tr>
 
                 </thead>
 
-                <tbody class="divide-y">
+                <tbody>
 
                     @forelse($shiftClosings as $shift)
 
                     @php
-
-                        $selisih =
-                            $shift->actual_cash -
-                            $shift->expected_cash;
 
                         if($shift->waktu_mulai < '12:00'){
                             $shiftLabel = 'Pagi';
@@ -320,63 +313,47 @@
 
                     <tr class="hover:bg-gray-50">
 
-                        <td class="py-4">
+                        <td class="px-3 py-3 border border-gray-200">
                             {{ \Carbon\Carbon::parse($shift->tanggal)->format('d M Y') }}
                         </td>
 
-                        <td>{{ ucfirst($shift->outlet) }}</td>
+                        <td class="px-3 py-3 border border-gray-200">
+                            {{ ucfirst($shift->outlet) }}
+                        </td>
 
-                        <td>{{ $shift->kasir }}</td>
+                        <td class="px-3 py-3 border border-gray-200">
+                            {{ $shift->kasir }}
+                        </td>
 
-                        <td>{{ $shiftLabel }}</td>
+                        <td class="px-3 py-3 border border-gray-200">
+                            {{ $shiftLabel }}
+                        </td>
 
-                        <td>{{ $shift->total_transaksi }}</td>
+                        <td class="px-3 py-3 border border-gray-200">
+                            {{ $shift->total_transaksi }}
+                        </td>
 
-                        <td>
+                        <td class="px-3 py-3 border border-gray-200">
                             Rp {{ number_format($shift->cash_total,0,',','.') }}
                         </td>
 
-                        <td>
+                        <td class="px-3 py-3 border border-gray-200">
                             Rp {{ number_format($shift->qris_total,0,',','.') }}
                         </td>
 
-                        <td class="font-semibold">
+                        <td class="px-4 py-4 border border-gray-200 font-semibold whitespace-nowrap">
                             Rp {{ number_format($shift->total_penjualan,0,',','.') }}
                         </td>
 
-                        <td>
-                            Rp {{ number_format($shift->expected_cash,0,',','.') }}
+                        <td class="px-3 py-3 border border-gray-200">
+                            Rp {{ number_format($shift->uang_modal,0,',','.') }}
                         </td>
 
-                        <td>
-                            Rp {{ number_format($shift->actual_cash,0,',','.') }}
+                        <td class="px-3 py-3 border border-gray-200">
+                            Rp {{ number_format($shift->pengeluaran_lainnya ?? 0,0,',','.') }}
                         </td>
 
-                        <td>
-
-                            @if($selisih == 0)
-
-                                <span class="text-green-600 font-semibold">
-                                    Rp 0
-                                </span>
-
-                            @elseif($selisih < 0)
-
-                                <span class="text-red-600 font-semibold">
-                                    -Rp {{ number_format(abs($selisih),0,',','.') }}
-                                </span>
-
-                            @else
-
-                                <span class="text-blue-600 font-semibold">
-                                    +Rp {{ number_format($selisih,0,',','.') }}
-                                </span>
-
-                            @endif
-
-                        </td>
-
-                        <td>
+                        <td class="px-3 py-3 border border-gray-200">
 
                             <button
                                 type="button"
@@ -391,13 +368,15 @@
                                     '{{ number_format($shift->cash_total,0,',','.') }}',
                                     '{{ number_format($shift->qris_total,0,',','.') }}',
                                     '{{ number_format($shift->total_penjualan,0,',','.') }}',
-                                    '{{ number_format($shift->expected_cash,0,',','.') }}',
+                                    '{{ number_format($shift->uang_modal,0,',','.') }}',
+                                    '{{ number_format($shift->pengeluaran_lainnya ?? 0,0,',','.') }}',
                                     '{{ number_format($shift->actual_cash,0,',','.') }}',
-                                    '{{ $shift->catatan ?? '-' }}',
-                                    '{{ $selisih }}'
+                                    '{{ $shift->catatan ?? '-' }}'
                                 )"
                                 class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+
                                 Lihat Detail
+
                             </button>
 
                         </td>
@@ -408,8 +387,8 @@
 
                     <tr>
 
-                        <td colspan="12"
-                            class="text-center py-12 text-gray-400">
+                        <td colspan="11"
+                            class="text-center py-10 border border-gray-200 text-gray-500">
 
                             Belum ada data history shift
 
@@ -514,7 +493,7 @@
 
                 <div class="flex justify-between border-b pb-2">
                     <span>Cash</span>
-                    <span id="dCash" class="font-semibold"></span>
+                    <span id="dPembelianCash" class="font-semibold"></span>
                 </div>
 
                 <div class="flex justify-between border-b pb-2">
@@ -537,30 +516,41 @@
         </div>
 
         <div class="border rounded-xl p-5 mb-5">
-
             <h3 class="font-semibold text-gray-600 mb-4">
                 Kas / Cash Drawer
             </h3>
-
             <div class="space-y-3">
-
                 <div class="flex justify-between border-b pb-2">
-                    <span>Expected Cash</span>
-                    <span id="dExpected" class="font-semibold"></span>
+                    <span>Uang Modal</span>
+                    <span 
+                        id="dModal"
+                        class="font-semibold">
+                    </span>
                 </div>
-
                 <div class="flex justify-between border-b pb-2">
-                    <span>Actual Cash</span>
-                    <span id="dActual" class="font-semibold"></span>
+                    <span>Pembelian Cash</span>
+                    <span 
+                        id="dCash"
+                        class="font-semibold">
+                    </span>
                 </div>
-
+                <div class="flex justify-between border-b pb-2">
+                    <span>Pengeluaran</span>
+                    <span 
+                        id="dPengeluaran"
+                        class="font-semibold">
+                    </span>
+                </div>
                 <div class="flex justify-between">
-                    <span>Selisih</span>
-                    <span id="dSelisih" class="font-semibold"></span>
+                    <span class="font-bold">
+                        Sisa Cash di Laci
+                    </span>
+                    <span 
+                        id="dSisaCash"
+                        class="font-bold text-blue-600">
+                    </span>
                 </div>
-
             </div>
-
         </div>
 
         <div class="border rounded-xl p-5">
@@ -592,82 +582,85 @@ function showDetail(
     cash,
     qris,
     total,
-    expected,
-    actual,
-    catatan,
-    selisih
+    uangModal,
+    pengeluaran,
+    sisaCash,
+    catatan
 ){
 
     document.getElementById('dTanggal').innerText = tanggal;
+
     document.getElementById('dKasir').innerText = kasir;
+
     document.getElementById('dOutlet').innerText = outlet;
+
 
     document.getElementById('dShift').innerText =
         shift + ' (' + mulai + ' - ' + selesai + ')';
 
+
     document.getElementById('dPesanan').innerText =
         pesanan + ' pesanan';
+
 
     document.getElementById('dCash').innerText =
         'Rp ' + cash;
 
+
     document.getElementById('dQris').innerText =
         'Rp ' + qris;
+
 
     document.getElementById('dTotal').innerText =
         'Rp ' + total;
 
-    document.getElementById('dExpected').innerText =
-        'Rp ' + expected;
 
-    document.getElementById('dActual').innerText =
-        'Rp ' + actual;
 
-    let selisihEl = document.getElementById('dSelisih');
+    document.getElementById('dModal').innerText =
+        'Rp ' + uangModal;
 
-    if(parseInt(selisih) < 0){
 
-        selisihEl.className =
-            'font-semibold text-orange-500';
+    document.getElementById('dPengeluaran').innerText =
+        'Rp ' + pengeluaran;
 
-        selisihEl.innerText =
-            '-Rp ' + Math.abs(parseInt(selisih))
-            .toLocaleString('id-ID');
 
-    }else if(parseInt(selisih) > 0){
+    document.getElementById('dSisaCash').innerText =
+        'Rp ' + sisaCash;
 
-        selisihEl.className =
-            'font-semibold text-blue-600';
-
-        selisihEl.innerText =
-            '+Rp ' + parseInt(selisih)
-            .toLocaleString('id-ID');
-
-    }else{
-
-        selisihEl.className =
-            'font-semibold text-green-600';
-
-        selisihEl.innerText = 'Rp 0';
-    }
 
     document.getElementById('dCatatan').innerText =
         catatan || '-';
 
-    document.getElementById('detailModal')
-        .classList.remove('hidden');
 
-    document.getElementById('detailModal')
-        .classList.add('flex');
+
+    document
+        .getElementById('detailModal')
+        .classList
+        .remove('hidden');
+
+
+    document
+        .getElementById('detailModal')
+        .classList
+        .add('flex');
+
 }
+
+
 
 function closeDetail(){
 
-    document.getElementById('detailModal')
-        .classList.add('hidden');
+    document
+        .getElementById('detailModal')
+        .classList
+        .add('hidden');
 
-    document.getElementById('detailModal')
-        .classList.remove('flex');
+
+    document
+        .getElementById('detailModal')
+        .classList
+        .remove('flex');
+
 }
 
 </script>

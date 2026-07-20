@@ -11,6 +11,8 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         $cart = $request->cart;
+        $paymentMethod = $request->payment_method ?? 'cash';
+        $paymentAmount = (int) ($request->payment_amount ?? 0);
 
         // =========================
         // VALIDASI CART
@@ -48,7 +50,7 @@ class TransactionController extends Controller
                 $subtotal += $item['price'] * $item['qty'];
             }
 
-            $tax = round($subtotal * 0.10);
+            $tax = 0;
             $total = $subtotal + $tax;
 
             // =========================
@@ -77,9 +79,13 @@ class TransactionController extends Controller
                 'subtotal' => $subtotal,
                 'tax' => $tax,
                 'total' => $total,
-
+                'payment_method' => $paymentMethod,
+                'payment_amount' => $paymentAmount,
+                'change_amount' => max(
+                    0,
+                    $paymentAmount - $total
+                ),
                 'status' => 'paid',
-
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -126,9 +132,13 @@ class TransactionController extends Controller
                 'tax' => $tax,
 
                 'total' => $total,
-
+                'payment_amount' => $paymentAmount,
+                'change_amount' => max(
+                    0,
+                    $paymentAmount - $total
+                ),
+                'payment_method' => $paymentMethod,
                 'created_at' => now()->format('d/m/Y H:i'),
-
                 'items' => collect($cart)->map(function ($item) {
 
                     return [
@@ -158,26 +168,12 @@ class TransactionController extends Controller
         }
     }
 
-    public function history()
+    public function history(Request $request)
     {
         $user = auth()->user();
 
         $query = DB::table('transactions')
-
-            ->leftJoin(
-                'transaction_items',
-                'transactions.id',
-                '=',
-                'transaction_items.transaction_id'
-            )
-
-            ->leftJoin(
-                'users',
-                'transactions.kasir_id',
-                '=',
-                'users.id'
-            )
-
+            ->leftJoin('users', 'transactions.kasir_id', '=', 'users.id')
             ->select(
                 'transactions.id',
                 'transactions.nama_outlet',
@@ -185,41 +181,140 @@ class TransactionController extends Controller
                 'users.name as kasir',
                 'transactions.total',
                 'transactions.status',
-                'transactions.created_at',
-
-                DB::raw('COUNT(transaction_items.id) as items_count')
-            );
-
-        // =========================
-        // FILTER BERDASARKAN ROLE
-        // =========================
-        if (
-            $user->role !== 'admin' &&
-            $user->role !== 'SPV'
-        ) {
-
-            $query->where(
-                'transactions.nama_outlet',
-                $user->role
-            );
-        }
-
-        $transactions = $query
-
-            ->groupBy(
-                'transactions.id',
-                'transactions.nama_outlet',
-                'transactions.order_number',
-                'users.name',
-                'transactions.total',
-                'transactions.status',
+                'transactions.payment_method',
                 'transactions.created_at'
             )
+            ->addSelect(DB::raw('(
+                SELECT COUNT(*)
+                FROM transaction_items
+                WHERE transaction_items.transaction_id = transactions.id
+            ) as items_count'));
 
+        // =========================
+        // FILTER ROLE OUTLET
+        // =========================
+        if ($user->role !== 'admin' && $user->role !== 'SPV') {
+            $query->where('transactions.nama_outlet', $user->role);
+        }
+
+        // =========================
+        // FILTER OUTLET
+        // =========================
+        if ($request->filled('outlet')) {
+            $query->where('transactions.nama_outlet', $request->outlet);
+        }
+
+        // =========================
+        // FILTER DATE FROM - TO
+        // =========================
+        if ($request->filled('from')) {
+            $query->whereDate('transactions.created_at', '>=', $request->from);
+        }
+
+        if ($request->filled('to')) {
+            $query->whereDate('transactions.created_at', '<=', $request->to);
+        }
+
+        // =========================
+        // FILTER STATUS
+        // =========================
+        if ($request->filled('status')) {
+            $query->where('transactions.status', $request->status);
+        }
+
+        // =========================
+        // FILTER PAYMENT METHOD
+        // =========================
+        if ($request->filled('payment_method')) {
+            $query->where('transactions.payment_method', $request->payment_method);
+        }
+
+        // Filter untuk dropdown outlet
+        $outlets = DB::table('transactions')
+            ->select('nama_outlet')
+            ->distinct()
+            ->orderBy('nama_outlet')
+            ->pluck('nama_outlet');
+
+        // =========================
+        // RESULT
+        // =========================
+        $transactions = $query
             ->orderBy('transactions.created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
-            ->paginate(10);
+        return view('kasir.history', compact('transactions', 'outlets'));
+    }
 
-        return view('kasir.history', compact('transactions'));
+    public function detail($id)
+    {
+        $trx = DB::table('transactions')
+            ->leftJoin(
+                'users',
+                'transactions.kasir_id',
+                '=',
+                'users.id'
+            )
+            ->select(
+                'transactions.id',
+                'transactions.order_number',
+                'transactions.nama_outlet',
+                'transactions.payment_method',
+                'transactions.total',
+
+                // TAMBAHKAN INI
+                'transactions.payment_amount',
+                'transactions.change_amount',
+
+                'users.name as kasir_name'
+            )
+            ->where('transactions.id', $id)
+            ->first();
+
+
+
+        if (!$trx) {
+
+            return response()->json([
+                'success'=>false
+            ],404);
+
+        }
+
+
+
+        $items = DB::table('transaction_items')
+            ->where('transaction_id',$id)
+            ->get();
+
+
+
+        return response()->json([
+
+            'success'=>true,
+
+            'trx'=>[
+
+                'order_number'=>$trx->order_number,
+
+                'nama_outlet'=>$trx->nama_outlet,
+
+                'payment_method'=>$trx->payment_method,
+
+                'kasir_name'=>$trx->kasir_name,
+
+                'total'=>$trx->total,
+
+                'payment_amount'=>$trx->payment_amount,
+
+                'change_amount'=>$trx->change_amount,
+
+            ],
+
+
+            'items'=>$items
+
+        ]);
     }
 }

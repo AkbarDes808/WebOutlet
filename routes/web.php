@@ -58,8 +58,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('marinasi.index');
 
     // Route untuk kasir
-    Route::get('/kasir', [KasirController::class, 'index'])->name('kasir.index');
-
+    Route::get('/kasir', [KasirController::class, 'index'])
+        ->name('kasir.index')
+        ->middleware('shift.closed');
     // Route untuk Transaksi Kasir
     Route::post('/transactions', [TransactionController::class, 'store'])
         ->name('transactions.store');
@@ -107,6 +108,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
+
+    Route::get(
+    '/transactions/{id}/detail',
+    [TransactionController::class, 'detail']
+    )->name('transactions.detail');
+
+    Route::get(
+    '/transactions/{id}/receipt',
+    [TransactionController::class,'receipt']
+    );
+
+    // Route Baru tambah disini
     
 
 });

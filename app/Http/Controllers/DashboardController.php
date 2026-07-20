@@ -59,12 +59,19 @@ class DashboardController extends Controller
         // ======================
         // 2. FILTER OUTLET
         // ======================
-        if ($user->role === 'outlet') {
-            $filterOutlet = trim($user->name);
+        if (preg_match('/^outlet\s\d+$/', $user->role)) {
+
+            $filterOutlet = $user->role;
+
             $outlets = collect([$filterOutlet]);
+
         } else {
+
             $filterOutlet = $request->input('outlet');
-            $outlets = Bahan::select('nama_outlet')->distinct()->pluck('nama_outlet');
+
+            $outlets = Bahan::select('nama_outlet')
+                ->distinct()
+                ->pluck('nama_outlet');
         }
 
         // ======================

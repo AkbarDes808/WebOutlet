@@ -15,10 +15,12 @@
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-gray-100 h-screen flex">
+<body class="bg-gray-100 min-h-screen flex overflow-x-hidden">
 
 <!-- OVERLAY -->
 <div id="overlay" class="fixed inset-0 bg-black/40 hidden z-40 lg:hidden"></div>
@@ -37,13 +39,13 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
     </div>
 
     <!-- MENU -->
-    <nav class="flex-1 px-2 py-4 space-y-1 text-sm">
+    <nav class="flex-1 px-2 py-4 space-y-1 text-sm overflow-y-auto">
 
-        <!-- Dashboard -->
+        {{-- DASHBOARD --}}
         <a href="{{ route('dashboard') }}"
         class="flex items-center gap-3 px-4 py-3 rounded-lg relative
         {{ request()->routeIs('dashboard') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
+
             @if(request()->routeIs('dashboard'))
             <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
             @endif
@@ -52,24 +54,11 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
             Dashboard
         </a>
 
-        <!-- Inventory (FIXED) -->
-        <a href="{{ route('bahans.index') }}"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg relative
-        {{ request()->routeIs(['bahans.index','bahans.create','bahans.edit']) ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
-            @if(request()->routeIs(['bahans.index','bahans.create','bahans.edit']))
-            <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
-            @endif
-
-            <i class="fa-solid fa-box"></i>
-            Inventory
-        </a>
-
-        <!-- Kasir -->
+        {{-- KASIR (SEMUA ROLE) --}}
         <a href="{{ route('kasir.index') }}"
         class="flex items-center gap-3 px-4 py-3 rounded-lg relative
         {{ request()->routeIs('kasir.index') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
+
             @if(request()->routeIs('kasir.index'))
             <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
             @endif
@@ -78,11 +67,70 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
             Kasir
         </a>
 
-        <!-- Riwayat Pesanan -->
+        {{-- INVENTORY ADMIN + SPV --}}
+        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'SPV')
+
+            <a href="{{ route('bahans.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg relative
+            {{ request()->routeIs('bahans.index') || request()->routeIs('bahans.create')
+                ? 'bg-blue-50 text-blue-600 font-semibold'
+                : 'text-gray-600 hover:bg-gray-200' }}">
+
+                @if(request()->routeIs('bahans.index') || request()->routeIs('bahans.create'))
+                <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
+                @endif
+
+                <i class="fa-solid fa-box"></i>
+                Inventory
+            </a>
+
+        @endif
+
+        {{-- MARINASI KHUSUS ADMIN --}}
+        @if(Auth::user()->role === 'admin')
+
+            <a href="{{ route('marinasi.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg relative
+            {{ request()->routeIs('marinasi.*')
+                ? 'bg-blue-50 text-blue-600 font-semibold'
+                : 'text-gray-600 hover:bg-gray-200' }}">
+
+                @if(request()->routeIs('marinasi.*'))
+                <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
+                @endif
+
+                <i class="fa-solid fa-drumstick-bite"></i>
+                Marinasi
+            </a>
+
+        @endif
+
+        {{-- HISTORY ADMIN + SPV --}}
+        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'SPV')
+
+            <a href="{{ route('bahans.history') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg relative
+            {{ request()->routeIs('bahans.history')
+                ? 'bg-blue-50 text-blue-600 font-semibold'
+                : 'text-gray-600 hover:bg-gray-200' }}">
+
+                @if(request()->routeIs('bahans.history'))
+                <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
+                @endif
+
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                History
+            </a>
+
+        @endif
+
+        {{-- RIWAYAT PESANAN SEMUA ROLE --}}
         <a href="{{ route('kasir.history') }}"
         class="flex items-center gap-3 px-4 py-3 rounded-lg relative
-        {{ request()->routeIs('kasir.history') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
+        {{ request()->routeIs('kasir.history')
+            ? 'bg-blue-50 text-blue-600 font-semibold'
+            : 'text-gray-600 hover:bg-gray-200' }}">
+
             @if(request()->routeIs('kasir.history'))
             <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
             @endif
@@ -90,12 +138,14 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
             <i class="fa-solid fa-receipt"></i>
             Riwayat Pesanan
         </a>
-        
-        <!-- Riwayat Shift -->
+
+        {{-- RIWAYAT SHIFT SEMUA ROLE --}}
         <a href="{{ route('shift.history') }}"
         class="flex items-center gap-3 px-4 py-3 rounded-lg relative
-        {{ request()->routeIs('shift.history') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
+        {{ request()->routeIs('shift.history')
+            ? 'bg-blue-50 text-blue-600 font-semibold'
+            : 'text-gray-600 hover:bg-gray-200' }}">
+
             @if(request()->routeIs('shift.history'))
             <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
             @endif
@@ -104,48 +154,41 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
             Riwayat Shift
         </a>
 
-        <!-- History (SUDAH DIPISAH) -->
-        <a href="{{ route('bahans.history') }}"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg relative
-        {{ request()->routeIs('bahans.history') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
-            @if(request()->routeIs('bahans.history'))
-            <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
-            @endif
+        {{-- OUTLETS ADMIN + SPV --}}
+        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'SPV')
 
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            History
-        </a>
+            <a href="{{ route('outlets.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg relative
+            {{ request()->routeIs('outlets.*')
+                ? 'bg-blue-50 text-blue-600 font-semibold'
+                : 'text-gray-600 hover:bg-gray-200' }}">
 
-        <!-- Outlet -->
-        @if(Auth::user()->role !== 'outlet')
-        <a href="{{ route('outlets.index') }}"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg relative
-        {{ request()->routeIs('outlets.index') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-600 hover:bg-gray-200' }}">
-            
-            @if(request()->routeIs('outlets.index'))
-            <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
-            @endif
+                @if(request()->routeIs('outlets.*'))
+                <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
+                @endif
 
-            <i class="fa-solid fa-building"></i>
-            Outlets
-        </a>
+                <i class="fa-solid fa-building"></i>
+                Outlets
+            </a>
+
         @endif
 
+        {{-- USERS ADMIN --}}
         <hr class="my-2">
 
-    <!-- Logout -->
-    <form method="POST" action="{{ route('logout') }}">
-        @csrf
+        {{-- LOGOUT --}}
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
 
-        <button
-            type="submit"
-            class="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-200 rounded-lg">
+            <button
+                type="submit"
+                class="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-200 rounded-lg">
 
-            <i class="fa-solid fa-right-from-bracket"></i>
-            Logout
-        </button>
-    </form>
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Logout
+
+            </button>
+        </form>
 
     </nav>
 
@@ -165,13 +208,14 @@ transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z
 <div class="flex-1 flex flex-col w-full lg:ml-64">
 
     <!-- HEADER MOBILE -->
-    <header class="lg:hidden flex justify-between items-center p-4 bg-white shadow">
+    <header
+        class="lg:hidden sticky top-0 z-30 flex justify-between items-center bg-white shadow px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-4 border-b">
         <button id="openSidebar">☰</button>
-        <h1 class="font-bold">Wish Chicken</h1>
+        <h1 class="font-bold text-lg">Wish Chicken</h1>
     </header>
 
     <!-- CONTENT -->
-    <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+    <main class="flex-1 p-4 sm:p-6">
         @yield('content')
     </main>
 
@@ -212,26 +256,62 @@ async function checkSession() {
             alert("Session habis, silakan login ulang.");
             window.location.href = "/login";
         }
+
     } catch (e) {
         console.error("Session check failed", e);
     }
 }
 
+
 document.addEventListener("visibilitychange", () => {
+
     if (document.visibilityState === "visible") {
+
         let now = Date.now();
+
         let diff = (now - lastActive) / 1000;
 
+
         if (diff > 900) {
+
             location.reload();
+
         } else {
+
             checkSession();
+
         }
+
     } else {
+
         lastActive = Date.now();
+
     }
+
 });
 </script>
+
+
+@if(session('shift_closed'))
+
+<script>
+
+Swal.fire({
+
+    icon: 'warning',
+
+    title: 'Shift Selesai',
+
+    text: "{{ session('shift_closed') }}",
+
+    confirmButtonText: 'OK'
+
+});
+
+</script>
+
+@endif
+
 
 </body>
 </html>

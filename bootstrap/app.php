@@ -24,7 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectTo(users: '/dashboard');
         
          $middleware->alias([
-        'admin' => \App\Http\Middleware\AdminMiddleware::class,]);
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'shift.closed' => \App\Http\Middleware\CheckShiftClosed::class,
+        ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

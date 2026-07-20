@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use App\Models\ShiftClosing;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -28,8 +29,24 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect('/dashboard');
+        $user = Auth::user();
 
+        $today = now()->toDateString();
+
+        // Cek apakah hari ini sudah tutup shift
+        $alreadyClosed = ShiftClosing::where('user_id', $user->id)
+            ->whereDate('tanggal', $today)
+            ->exists();
+
+        // Simpan jam login pertama sebagai awal shift
+        if (!$alreadyClosed && is_null($user->shift_started_at)) {
+
+            $user->shift_started_at = now();
+            $user->save();
+
+        }
+
+        return redirect('/dashboard');
     }
 
     /**

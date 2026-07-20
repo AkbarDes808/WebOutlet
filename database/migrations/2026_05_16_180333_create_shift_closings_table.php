@@ -12,7 +12,7 @@ return new class extends Migration
 
             $table->id();
 
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id')->index();
 
             $table->string('outlet');
             $table->string('kasir');
@@ -24,19 +24,25 @@ return new class extends Migration
 
             $table->integer('total_transaksi')->default(0);
 
-            $table->bigInteger('total_penjualan')->default(0);
+            // 🔥 UANG (PAKAI DECIMAL, BUKAN BIGINT)
+            $table->decimal('total_penjualan', 15, 2)->default(0);
 
-            $table->bigInteger('cash_total')->default(0);
+            $table->decimal('cash_total', 15, 2)->default(0);
             $table->integer('cash_orders')->default(0);
 
-            $table->bigInteger('qris_total')->default(0);
+            $table->decimal('qris_total', 15, 2)->default(0);
             $table->integer('qris_orders')->default(0);
 
-            $table->bigInteger('expected_cash')->default(0);
+            $table->decimal('uang_modal', 15, 2)->default(0);
 
-            $table->bigInteger('actual_cash')->default(0);
+            $table->decimal('expected_cash', 15, 2)->default(0);
 
-            $table->bigInteger('selisih')->default(0);
+            $table->decimal('actual_cash', 15, 2)->default(0);
+
+            $table->decimal('selisih', 15, 2)->default(0);
+
+            // 🔥 ini penting (pengeluaran manual)
+            $table->decimal('pengeluaran_lainnya', 15, 2)->default(0);
 
             $table->text('catatan')->nullable();
 

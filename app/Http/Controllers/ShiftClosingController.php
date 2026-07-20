@@ -4,87 +4,188 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ShiftClosing;
+use App\Models\Transaction;
+use Illuminate\Support\Facades\DB;
 
 class ShiftClosingController extends Controller
 {
+    private function getOutlet($user)
+    {
+        return strtolower(trim($user->role));
+    }
+
+    private function baseQuery($today, $outlet)
+    {
+        return Transaction::whereDate('created_at', $today)
+            ->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [$outlet]);
+    }
+
     public function index()
     {
         $user = auth()->user();
 
-        return view('shift.index', compact('user'));
+        $today = now()->toDateString();
+        $outlet = $this->getOutlet($user);
+
+        $cashTotal = $this->baseQuery($today, $outlet)
+            ->whereRaw('LOWER(payment_method) = ?', ['cash'])
+            ->sum('total');
+
+        $qrisTotal = $this->baseQuery($today, $outlet)
+            ->whereRaw('LOWER(payment_method) = ?', ['qris'])
+            ->sum('total');
+
+        $totalPenjualan = $this->baseQuery($today, $outlet)
+            ->sum('total');
+
+        $totalTransaksi = $this->baseQuery($today, $outlet)
+            ->count();
+
+        $cashOrders = $this->baseQuery($today, $outlet)
+            ->whereRaw('LOWER(payment_method) = ?', ['cash'])
+            ->count();
+
+        $qrisOrders = $this->baseQuery($today, $outlet)
+            ->whereRaw('LOWER(payment_method) = ?', ['qris'])
+            ->count();
+
+        $actualCash = 0;
+
+        return view('shift.index', compact(
+            'user',
+            'cashTotal',
+            'qrisTotal',
+            'totalPenjualan',
+            'totalTransaksi',
+            'cashOrders',
+            'qrisOrders',
+            'actualCash'
+        ));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $user = auth()->user();
 
-            'tanggal'          => 'required',
-            'waktu_mulai'      => 'required',
-            'waktu_selesai'    => 'required',
+        if (!$user) {
+            return redirect('/login');
+        }
 
-            'total_transaksi'  => 'required|numeric',
+        $today = now()->toDateString();
+        $outlet = $this->getOutlet($user);
 
-            'total_penjualan'  => 'required|numeric',
+        $alreadyClosed = ShiftClosing::where('user_id', $user->id)
+            ->whereDate('tanggal', $today)
+            ->exists();
 
-            'cash_total'       => 'required|numeric',
-            'cash_orders'      => 'required|numeric',
+        if ($alreadyClosed) {
+            auth()->logout();
 
-            'qris_total'       => 'required|numeric',
-            'qris_orders'      => 'required|numeric',
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-            'expected_cash'    => 'required|numeric',
+            return redirect('/login');
+        }
 
-            'actual_cash'      => 'required|numeric',
+        DB::beginTransaction();
 
-            'catatan'          => 'nullable',
-        ]);
+        try {
 
-        // =========================
-        // HITUNG SELISIH
-        // =========================
-        $selisih =
-            $request->actual_cash -
-            $request->expected_cash;
+            $cashTotal = $this->baseQuery($today, $outlet)
+                ->whereRaw('LOWER(payment_method) = ?', ['cash'])
+                ->sum('total');
 
-        // =========================
-        // SIMPAN DATABASE
-        // =========================
-        ShiftClosing::create([
+            $qrisTotal = $this->baseQuery($today, $outlet)
+                ->whereRaw('LOWER(payment_method) = ?', ['qris'])
+                ->sum('total');
 
-            'user_id' => auth()->id(),
+            $totalPenjualan = $this->baseQuery($today, $outlet)
+                ->sum('total');
 
-            'outlet' => auth()->user()->role,
+            $totalTransaksi = $this->baseQuery($today, $outlet)
+                ->count();
 
-            'kasir' => auth()->user()->name,
+            $cashOrders = $this->baseQuery($today, $outlet)
+                ->whereRaw('LOWER(payment_method) = ?', ['cash'])
+                ->count();
 
-            'tanggal' => $request->tanggal,
+            $qrisOrders = $this->baseQuery($today, $outlet)
+                ->whereRaw('LOWER(payment_method) = ?', ['qris'])
+                ->count();
 
-            'waktu_mulai' => $request->waktu_mulai,
-            'waktu_selesai' => $request->waktu_selesai,
+            $uangModal = (float) ($request->uang_modal ?? 0);
 
-            'total_transaksi' => $request->total_transaksi,
+            $pengeluaranLainnya = (float) ($request->pengeluaran_lainnya ?? 0);
 
-            'total_penjualan' => $request->total_penjualan,
 
-            'cash_total' => $request->cash_total,
-            'cash_orders' => $request->cash_orders,
+            // TOTAL KEMBALIAN CASH
+            $totalKembalian = $this->baseQuery($today, $outlet)
+                ->whereRaw('LOWER(payment_method) = ?', ['cash'])
+                ->sum('change_amount');
 
-            'qris_total' => $request->qris_total,
-            'qris_orders' => $request->qris_orders,
 
-            'expected_cash' => $request->expected_cash,
+            // CASH DRAWER
+            // Modal + Cash Masuk - Kembalian - Pengeluaran
+            $actualCash =
+                $uangModal +
+                $cashTotal -
+                $totalKembalian -
+                $pengeluaranLainnya;
 
-            'actual_cash' => $request->actual_cash,
+            $selisih =
+                $actualCash -
+                $cashTotal;
 
-            'selisih' => $selisih,
 
-            'catatan' => $request->catatan,
-        ]);
+            ShiftClosing::create([
 
-        return back()->with(
-            'success',
-            'Shift berhasil ditutup'
-        );
+                'user_id' => $user->id,
+                'outlet' => $outlet,
+                'kasir' => $user->name,
+
+                'tanggal' => $today,
+                'waktu_mulai' => $user->shift_started_at
+                    ? $user->shift_started_at->format('H:i:s')
+                    : now()->format('H:i:s'),
+                'waktu_selesai' => now()->format('H:i:s'),
+
+                'total_transaksi' => $totalTransaksi,
+                'total_penjualan' => $totalPenjualan,
+
+                'cash_total' => $cashTotal,
+                'cash_orders' => $cashOrders,
+
+                'qris_total' => $qrisTotal,
+                'qris_orders' => $qrisOrders,
+
+                'uang_modal' => $uangModal,
+                'pengeluaran_lainnya' => $pengeluaranLainnya,
+                'total_kembalian' => $totalKembalian,
+                'actual_cash' => $actualCash,
+                'selisih' => $selisih,
+
+                'catatan' => $request->catatan,
+
+            ]);
+
+            DB::commit();
+
+            auth()->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect('/login');
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return back()->with(
+                'error',
+                'Gagal menutup shift: '.$e->getMessage()
+            );
+        }
     }
 
     public function history(Request $request)
@@ -93,62 +194,48 @@ class ShiftClosingController extends Controller
 
         $query = ShiftClosing::query();
 
-        // Admin & SPV bisa lihat semua outlet
-        if (
-            strtolower($user->role) !== 'admin' &&
-            strtolower($user->role) !== 'spv'
-        ) {
-            // Outlet hanya lihat outlet miliknya
-            $query->where('outlet', $user->role);
+        if (!in_array(strtolower($user->role), ['admin', 'spv'])) {
+            $query->where(
+                'outlet',
+                $this->getOutlet($user)
+            );
         }
 
-        // Filter outlet hanya untuk admin/spv
-        if (
-            (strtolower($user->role) === 'admin' ||
-            strtolower($user->role) === 'spv')
-            && $request->filled('outlet')
-        ) {
+        if ($request->outlet) {
             $query->where('outlet', $request->outlet);
         }
 
-        // Filter tanggal
-        if ($request->filled('from')) {
-            $query->whereDate('tanggal', '>=', $request->from);
-        }
-
-        if ($request->filled('to')) {
-            $query->whereDate('tanggal', '<=', $request->to);
-        }
-
-        // Filter kasir
-        if ($request->filled('kasir')) {
+        if ($request->kasir) {
             $query->where('kasir', $request->kasir);
         }
 
+        if ($request->from && $request->to) {
+            $query->whereBetween(
+                'tanggal',
+                [
+                    $request->from,
+                    $request->to
+                ]
+            );
+        }
+
         $shiftClosings = $query
-            ->latest()
+            ->orderBy('tanggal', 'desc')
             ->paginate(10);
 
-        // Dropdown outlet hanya untuk admin/spv
-        $outlets = collect();
-
-        if (
-            strtolower($user->role) === 'admin' ||
-            strtolower($user->role) === 'spv'
-        ) {
-            $outlets = ShiftClosing::select('outlet')
-                ->distinct()
-                ->pluck('outlet');
-        }
+        $outlets = ShiftClosing::select('outlet')
+            ->distinct()
+            ->pluck('outlet');
 
         $kasirs = ShiftClosing::select('kasir')
             ->distinct()
             ->pluck('kasir');
 
-        return view('Shift.history', compact(
+        return view('shift.history', compact(
             'shiftClosings',
             'outlets',
-            'kasirs'
+            'kasirs',
+            'user'
         ));
     }
 }

@@ -11,34 +11,54 @@
     </p>
 
     <!-- FILTER -->
-    <div class="flex flex-wrap items-center gap-3 mb-6">
+    <form method="GET" action="{{ url()->current() }}" class="flex flex-wrap items-center gap-3 mb-6">
 
         <!-- Outlet -->
-        <select class="border rounded-lg px-3 py-2 text-sm text-gray-600">
-            <option>-- Semua Outlet --</option>
+        <select name="outlet" class="border rounded-lg px-3 py-2 text-sm text-gray-600">
+            <option value="">-- Semua Outlet --</option>
+            {{-- kalau ada data outlet --}}
+            @foreach($outlets ?? [] as $o)
+                <option value="{{ $o }}" {{ request('outlet') == $o ? 'selected' : '' }}>
+                    {{ $o }}
+                </option>
+            @endforeach
         </select>
 
-        <!-- Date -->
-        <input type="date" class="border rounded-lg px-3 py-2 text-sm text-gray-600">
+        <!-- Date From -->
+        <input type="date"
+            name="from"
+            value="{{ request('from') }}"
+            class="border rounded-lg px-3 py-2 text-sm text-gray-600">
+
         <span class="text-gray-400 text-sm">s/d</span>
-        <input type="date" class="border rounded-lg px-3 py-2 text-sm text-gray-600">
+
+        <!-- Date To -->
+        <input type="date"
+            name="to"
+            value="{{ request('to') }}"
+            class="border rounded-lg px-3 py-2 text-sm text-gray-600">
 
         <!-- Status -->
-        <select class="border rounded-lg px-3 py-2 text-sm text-gray-600">
-            <option>Semua Status</option>
+        <select name="status" class="border rounded-lg px-3 py-2 text-sm text-gray-600">
+            <option value="">Semua Status</option>
+            <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Selesai</option>
+            <option value="void" {{ request('status') == 'void' ? 'selected' : '' }}>Void</option>
         </select>
 
         <!-- Metode -->
-        <select class="border rounded-lg px-3 py-2 text-sm text-gray-600">
-            <option>Semua Metode</option>
+        <select name="payment_method" class="border rounded-lg px-3 py-2 text-sm text-gray-600">
+            <option value="">Semua Metode</option>
+            <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
+            <option value="qris" {{ request('payment_method') == 'qris' ? 'selected' : '' }}>QRIS</option>
         </select>
 
         <!-- Button -->
-        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+        <button type="submit"
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
             Filter
         </button>
 
-    </div>
+    </form>
 
     <!-- TABLE -->
     <div class="overflow-x-auto">
@@ -82,8 +102,18 @@
                     <!-- Items -->
                     <td>{{ $trx->items_count ?? 0 }} items</td>
 
-                    <!-- Metode -->
-                    <td>{{ $trx->payment_method ?? 'Cash' }}</td>
+                   <!-- Metode -->
+                    <td>
+                        @if(($trx->payment_method ?? 'cash') === 'qris')
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+                                QRIS
+                            </span>
+                        @else
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+                                CASH
+                            </span>
+                        @endif
+                    </td>
 
                     <!-- Total -->
                     <td class="font-semibold">
@@ -101,9 +131,11 @@
 
                     <!-- Aksi -->
                     <td>
-                        <a href="#" class="text-blue-600 hover:underline text-sm">
+                        <button
+                            class="btn-detail text-blue-600 hover:underline text-sm"
+                            data-id="{{ $trx->id }}">
                             Detail
-                        </a>
+                        </button>
                     </td>
 
                 </tr>
@@ -113,7 +145,6 @@
 
         </table>
     </div>
-
     <!-- FOOTER -->
     <div class="flex justify-between items-center mt-4 text-sm text-gray-500">
 
@@ -131,4 +162,293 @@
 
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+
+    function closeModal(){
+        const modal =
+        document.getElementById('detail-modal');
+
+        if(modal){
+            modal.remove();
+        }
+
+    }
+    function rupiah(value){
+
+        return 'Rp ' +
+        Number(value ?? 0)
+        .toLocaleString('id-ID');
+
+    }
+
+    document.addEventListener('click', async function(e){
+
+
+        const btn =
+            e.target.closest('.btn-detail');
+
+
+        if(!btn) return;
+
+        const id = btn.dataset.id;
+        document.body.insertAdjacentHTML(
+        'beforeend',
+
+        `
+
+        <div id="detail-modal"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+
+            <div class="bg-white rounded-xl p-8 flex flex-col items-center gap-4">
+
+
+                <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+
+
+                <div class="text-gray-600 font-medium">
+
+                    Memuat detail...
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+        `
+
+        );
+
+
+
+        try {
+
+
+            const res =
+            await fetch(`/transactions/${id}/detail`);
+
+
+
+            const data =
+            await res.json();
+
+
+
+            let itemsHTML = '';
+
+
+
+            data.items.forEach(item=>{
+
+
+                itemsHTML += `
+
+                <div class="flex justify-between">
+
+                    <span>
+                        ${item.qty}x ${item.menu_name}
+                    </span>
+
+                    <span>
+                        ${rupiah(item.subtotal)}
+                    </span>
+
+                </div>
+
+                `;
+
+
+            });
+
+
+
+
+
+           document.getElementById('detail-modal').innerHTML = `
+
+
+            <div class="bg-white rounded-xl p-6 w-full max-w-xl">
+
+
+                <div class="flex justify-between mb-5">
+
+                    <h2 class="text-xl font-bold">
+                        Detail Transaksi
+                    </h2>
+
+
+                    <button id="close-modal"
+                        class="text-xl">
+                        ×
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="font-mono border rounded-lg p-5">
+
+
+                    <div class="text-center mb-4">
+
+                        <div class="font-bold text-xl">
+                            WISH CHICKEN
+                        </div>
+
+                        <div>
+                            ${data.trx.order_number}
+                        </div>
+
+                    </div>
+
+
+                    <hr>
+
+
+                    <div class="my-4 space-y-1">
+
+
+                        <div>
+                            Kasir :
+                            ${data.trx.kasir_name}
+                        </div>
+
+
+                        <div>
+                            Outlet :
+                            ${data.trx.nama_outlet}
+                        </div>
+
+
+                        <div>
+                            Metode :
+                            ${data.trx.payment_method.toUpperCase()}
+                        </div>
+
+
+                    </div>
+
+
+
+                    <hr>
+
+
+
+                    <div class="my-4 space-y-2">
+
+                        ${itemsHTML}
+
+                    </div>
+
+
+
+                    <hr>
+
+
+
+                    <div class="mt-4 space-y-2">
+
+                        <div class="flex justify-between">
+
+                            <span>
+                                BAYAR
+                            </span>
+
+                            <span>
+                                ${rupiah(data.trx.payment_amount)}
+                            </span>
+
+                        </div>
+
+                        <div class="flex justify-between">
+
+                            <span>
+                                KEMBALIAN
+                            </span>
+
+                            <span>
+                                ${rupiah(data.trx.change_amount)}
+                            </span>
+
+                        </div>
+
+                        <div class="flex justify-between font-bold text-green-600">
+
+                            <span>
+                                TOTAL
+                            </span>
+
+                            <span>
+                                ${rupiah(data.trx.total)}
+                            </span>
+
+                        </div>
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+            `;
+
+
+
+
+            document
+            .getElementById('close-modal')
+            .onclick = closeModal;
+
+
+
+        }
+
+        catch(error){
+
+            console.error(error);
+
+            modal.innerHTML = `
+
+            <div class="bg-white p-6 rounded-xl">
+                Gagal mengambil detail transaksi
+            </div>
+
+            `;
+
+        }
+
+
+    });
+
+
+
+
+
+    document.addEventListener('click', e => {
+
+        const modal = document.getElementById('detail-modal');
+
+        if(
+            modal &&
+            e.target === modal
+        ){
+
+            closeModal();
+
+        }
+
+    });
+
+
+
+});
+</script>
 @endsection

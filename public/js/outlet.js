@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
 
         loadingOverlay.classList.remove('hidden');
-
         loadingOverlay.classList.add('flex');
     }
 
@@ -107,9 +106,8 @@ document.addEventListener('DOMContentLoaded', function () {
             desktopHTML += html;
         });
 
-        let tax = Math.round(subtotal * 0.10);
-
-        let total = subtotal + tax;
+        let tax = Math.round(0);
+        let total = subtotal;
 
         // MOBILE
         document.getElementById('cart-items-mobile').innerHTML =
@@ -219,460 +217,446 @@ window.checkout = async function () {
         totalItem += item.qty;
     });
 
-    let tax = Math.round(subtotal * 0.10);
-    let total = subtotal + tax;
+        let tax = Math.round(0);
+
+        let total = subtotal;
 
     loadingContent.innerHTML = `
+    <div class="bg-white rounded-xl w-full max-w-4xl mx-2 md:mx-auto p-6 flex flex-col h-[90vh] relative">
 
-    <div class="bg-white rounded-2xl
-    w-full max-w-xl
-    max-h-[90vh]
-    overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+        <!-- HEADER -->
+        <h2 class="text-xl md:text-2xl font-bold mb-4">
+            Pembayaran
+        </h2>
 
-        <div class="flex justify-between items-center p-5 border-b">
+        <button 
+            id="close-payment"
+            class="text-gray-500 hover:text-red-600 text-2xl font-bold">
+            x
+        </button>
 
-           <h2 class="text-xl font-bold">
-                Pembayaran Cash
-            </h2>
-
-            <button id="close-payment"
-                class="text-gray-400 text-2xl">
-                ×
+        </div>
+        <!-- TAB -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <button id="cash-tab"
+                class="border rounded-lg py-2 font-medium bg-blue-600 text-white">
+                Cash
             </button>
 
+            <button id="qris-tab"
+                class="border rounded-lg py-2 font-medium">
+                QRIS
+            </button>
         </div>
 
-        <div class="p-6">
+ <!-- QQQQ-->
 
-            <div class="text-center mb-5">
+        <!-- AREA CONTENT -->
+        <div class="flex-1 flex gap-4 overflow-hidden">
 
-                <div class="text-gray-400 text-lg">
-                    Total Bayar
-                </div>
 
-                <div class="text-3xl md:text-5xl font-bold text-slate-900 break-words">
-                    ${rupiah(total)}
-                </div>
-
-                <div class="text-gray-400 mt-2">
-                    ${totalItem} items
-                </div>
-
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-5">
-
-                <button id="cash-tab"
-                    class="border-2 border-blue-500 text-blue-600 font-semibold rounded-xl py-3">
-
-                    Cash
-
-                </button>
-
-                <button id="qris-tab"
-                    class="border rounded-xl py-3">
-
-                    QRIS
-
-                </button>
-
-            </div>
-
+            <!-- CASH BODY -->
             <div id="payment-body"
-                class="h-[430px] overflow-y-auto">
+                class="flex-1 overflow-y-auto pr-2">
+            </div>
 
-                <div class="font-semibold mb-2">
-                    Jumlah Uang Diterima
-                </div>
 
-                <input
-                    id="cash-input"
-                    type="number"
-                    value="${total}"
-                    class="w-full border rounded-xl p-3 text-3xl font-bold mb-4">
 
-                <div class="grid grid-cols-2 gap-3 mb-5">
-
-                    <button class="cash-btn border rounded-xl py-3"
-                        data-value="${total}">
-                        Uang Pas
-                    </button>
-
-                    <button class="cash-btn border rounded-xl py-3"
-                        data-value="100000">
-                        Rp 100.000
-                    </button>
-
-                    <button class="cash-btn border rounded-xl py-3"
-                        data-value="200000">
-                        Rp 200.000
-                    </button>
-
-                    <button class="cash-btn border rounded-xl py-3"
-                        data-value="500000">
-                        Rp 500.000
-                    </button>
-
-                    <button class="cash-btn border rounded-xl py-3"
-                        data-value="1000000">
-                        Rp 1.000.000
-                    </button>
-
-                </div>
-
-                <div
-                    class="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
-
-                    <div class="text-green-700 text-lg">
-                        Kembalian
-                    </div>
-
-                    <div id="change-text"
-                        class="text-5xl font-bold text-green-600">
-
-                        ${rupiah(0)}
-
-                    </div>
-
-                </div>
+            <!-- QRIS BODY -->
+            <div id="payment-qris"
+                class="hidden w-[420px] overflow-y-auto">
 
             </div>
 
-        </div>
 
-       <div class="border-t p-5 sticky bottom-0 bg-white">
+        </div>
+        <!-- FOOTER (FIXED BOTTOM AREA) -->
+        <div class="mt-4 pt-3 border-t bg-white">
 
             <button id="process-payment"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-xl font-bold text-xl">
-
+                class="w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold">
                 Proses Pembayaran
-
             </button>
 
         </div>
 
     </div>
-
     `;
 
     loadingOverlay.classList.remove('hidden');
     loadingOverlay.classList.add('flex');
 
-    document.getElementById('close-payment').onclick = hideLoading;
+    document
+        .getElementById('close-payment')
+        .onclick = function(){
 
-    let paymentMethod = 'cash';
+            hideLoading();
 
-    // ======================
-    // CASH
-    // ======================
+        };
+let paymentMethod = 'cash';
 
-    const cashInput = () =>
-        document.getElementById('cash-input');
-
-    const changeText = () =>
-        document.getElementById('change-text');
-
-    function updateChange() {
-
-        if (!cashInput()) return;
-
-        let bayar = parseInt(cashInput().value || 0);
-
-        let kembali = bayar - total;
-
-        changeText().innerText =
-            rupiah(Math.max(kembali, 0));
-    }
-
-    setTimeout(() => {
-
-        updateChange();
-
-        document.querySelectorAll('.cash-btn')
-        .forEach(btn => {
-
-            btn.onclick = () => {
-
-                cashInput().value =
-                    btn.dataset.value;
-
-                updateChange();
-            };
-
-        });
-
-        cashInput().addEventListener(
-            'input',
-            updateChange
-        );
-
-    }, 50);
-
-    // ======================
-    // QRIS TAB
-    // ======================
-
-    document.getElementById('qris-tab').onclick = () => {
-
-        paymentMethod = 'qris';
-        
-        document.getElementById('qris-tab')
-        .classList.add(
-            'border-2',
-            'border-blue-500',
-            'text-blue-600'
-        );
-
-        document.getElementById('cash-tab')
-        .classList.remove(
-            'border-2',
-            'border-blue-500',
-            'text-blue-600'
-        );
-
-        document.getElementById('payment-body').innerHTML = `
-
-            <div class="h-full flex flex-col justify-between">
-
-            <img
-                src="${window.qrisImage}"
-                class="mx-auto w-48 h-48 object-contain">
-
-                <div class="mt-4 text-lg">
-                    Scan QR dengan aplikasi pembayaran
-                </div>
-
-                <div class="text-gray-400 text-sm mt-2">
-                    GoPay • OVO • DANA • ShopeePay
-                </div>
-
-                <div class="mt-4 text-orange-500 font-semibold">
-                    Menunggu pembayaran...
-                </div>
-
-            </div>
-
-        `;
-    };
-
-    // ======================
-    // CASH TAB
-    // ======================
-
-    // ======================
-// CASH TAB
+// ======================
+// FUNCTION CASH VIEW
 // ======================
 
-    document.getElementById('cash-tab').onclick = () => {
+function initCashView() {
 
-        paymentMethod = 'cash';
+    document
+    .getElementById('payment-qris')
+    .classList.add('hidden');
 
-        document.getElementById('payment-body').innerHTML = `
 
-            <div class="font-semibold mb-2">
-                Jumlah Uang Diterima
-            </div>
+    document
+    .getElementById('payment-body')
+    .classList.remove('hidden');
 
-            <input
+    // kode cash lama
+
+    document.getElementById('payment-body').innerHTML = `
+
+        <!-- ISI CASH KAMU TETAP DISINI -->
+
+        <div class="space-y-5">
+
+            <div>
+
+                <div class="font-semibold mb-2">
+                    Jumlah Uang Diterima
+                </div>
+
+
+                <input
                 id="cash-input"
                 type="number"
                 value="${total}"
-                class="w-full border rounded-xl p-3 text-3xl font-bold mb-4">
-
-            <div class="grid grid-cols-2 gap-3 mb-5">
-
-                <button class="cash-btn border rounded-xl py-3"
-                    data-value="${total}">
-                    Uang Pas
-                </button>
-
-                <button class="cash-btn border rounded-xl py-3"
-                    data-value="100000">
-                    Rp 100.000
-                </button>
-
-                <button class="cash-btn border rounded-xl py-3"
-                    data-value="200000">
-                    Rp 200.000
-                </button>
-
-                <button class="cash-btn border rounded-xl py-3"
-                    data-value="500000">
-                    Rp 500.000
-                </button>
-
-                <button class="cash-btn border rounded-xl py-3"
-                    data-value="1000000">
-                    Rp 1.000.000
-                </button>
+                class="w-full border rounded-xl p-3 text-xl font-bold">
 
             </div>
 
-            <div
-                class="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
 
-                <div class="text-green-700 text-lg">
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+
+                <button class="cash-btn border rounded-xl py-3"
+                data-value="${total}">
+                    Uang Pas
+                </button>
+
+
+                <button class="cash-btn border rounded-xl py-3"
+                data-value="10000">
+                    10K
+                </button>
+
+
+                <button class="cash-btn border rounded-xl py-3"
+                data-value="20000">
+                    20K
+                </button>
+
+
+                <button class="cash-btn border rounded-xl py-3"
+                data-value="50000">
+                    50K
+                </button>
+
+
+            </div>
+
+
+
+            <div class="bg-green-50 rounded-xl p-4 text-center">
+
+
+                <div class="text-green-700">
                     Kembalian
                 </div>
 
+
                 <div id="change-text"
-                    class="text-5xl font-bold text-green-600">
+                class="text-5xl font-bold text-green-600">
 
                     ${rupiah(0)}
 
                 </div>
 
+
             </div>
 
-        `;
+
+        </div>
+
+    `;
+
+
+
+    const cashInput =
+    document.getElementById('cash-input');
+
+
+    const changeText =
+    document.getElementById('change-text');
+
+
+
+    function updateChange(){
+
+        let bayar =
+        parseInt(cashInput.value || 0);
+
+
+        changeText.innerText =
+        rupiah(Math.max(bayar-total,0));
+
+    }
+
+
+
+    cashInput.addEventListener(
+        'input',
+        updateChange
+    );
+
+
+
+    document
+    .querySelectorAll('.cash-btn')
+    .forEach(btn=>{
+
+
+        btn.onclick=()=>{
+
+            cashInput.value =
+            btn.dataset.value;
+
+
+            updateChange();
+
+        };
+
+
+    });
+
+
+}
+
+// ======================
+// FUNCTION QRIS VIEW
+// ======================
+
+function initQrisView(){
+
+
+    document
+    .getElementById('payment-body')
+    .classList.add('hidden');
+
+
+    document
+    .getElementById('payment-qris')
+    .classList.remove('hidden');
+
+
+
+    document.getElementById('payment-qris').innerHTML = `
+
+
+    <div class="h-full flex flex-col overflow-hidden">
+
+
+        <!-- NOMINAL -->
+        <div class="text-center py-2">
+
+
+            <div class="text-gray-500 text-sm">
+                Total Pembayaran
+            </div>
+
+
+            <div class="text-3xl font-bold text-blue-600">
+                ${rupiah(total)}
+            </div>
+
+
+        </div>
+
+
+
+        <!-- QR FULL POPUP -->
+        <div class="flex-1 overflow-hidden">
+
+
+            <img
+            src="${window.qrisImage}?v=${Date.now()}"
+            class="w-full h-full object-contain">
+
+
+        </div>
+
+
+
+    </div>
+
+
+    `;
+
+
+}
+
+// ======================
+// DEFAULT CASH
+// ======================
+
+initCashView();
+
+// ======================
+// TAB QRIS
+// ======================
+
+const qrisTab =
+    document.getElementById('qris-tab');
+
+if (qrisTab) {
+
+    qrisTab.onclick = () => {
+
+        paymentMethod = 'qris';
 
         document.getElementById('cash-tab')
-            .classList.add(
-                'border-2',
-                'border-blue-500',
-                'text-blue-600'
+            .classList.remove(
+                'bg-blue-600',
+                'text-white'
             );
 
         document.getElementById('qris-tab')
+            .classList.add(
+                'bg-blue-600',
+                'text-white'
+            );
+
+        initQrisView();
+    };
+}
+
+// ======================
+// TAB CASH
+// ======================
+
+const cashTab =
+    document.getElementById('cash-tab');
+
+if (cashTab) {
+
+    cashTab.onclick = () => {
+
+        paymentMethod = 'cash';
+
+        document.getElementById('qris-tab')
             .classList.remove(
-                'border-2',
-                'border-blue-500',
-                'text-blue-600'
+                'bg-blue-600',
+                'text-white'
             );
 
-        const cashInput =
-            document.getElementById('cash-input');
-
-        const changeText =
-            document.getElementById('change-text');
-
-        function updateChange() {
-
-            let bayar = parseInt(
-                cashInput.value || 0
+        document.getElementById('cash-tab')
+            .classList.add(
+                'bg-blue-600',
+                'text-white'
             );
 
-            let kembali = bayar - total;
+        initCashView();
+    };
+}
+// ======================
+// PROCESS PAYMENT
+// ======================
 
-            changeText.innerText =
-                rupiah(Math.max(kembali, 0));
+document.getElementById("process-payment").onclick = async function () {
+
+    if (isCheckoutProcessing) return;
+
+    isCheckoutProcessing = true;
+
+    const btn = document.getElementById("process-payment");
+
+    btn.disabled = true;
+    btn.innerHTML = "Memproses...";
+
+    try {
+
+        let receivedAmount = total;
+
+        if (paymentMethod === "cash") {
+            receivedAmount = parseInt(
+                document.getElementById("cash-input")?.value || total
+            );
         }
 
-        updateChange();
-
-        document.querySelectorAll('.cash-btn')
-            .forEach(btn => {
-
-                btn.onclick = () => {
-
-                    cashInput.value =
-                        btn.dataset.value;
-
-                    updateChange();
-                };
-
-            });
-
-        cashInput.addEventListener(
-            'input',
-            updateChange
-        );
-    };
-
-    // ======================
-    // PROCESS PAYMENT
-    // ======================
-
-    document.getElementById('process-payment').onclick =
-    async function () {
-
-        isCheckoutProcessing = true;
-
-        loadingContent.innerHTML = `
-
-            <div class="bg-white rounded-2xl p-10">
-
-                <div class="w-16 h-16 mx-auto border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-
-                <div class="mt-4 text-center font-semibold">
-                    Memproses Pembayaran...
-                </div>
-
-            </div>
-
-        `;
-
-        try {
-
-            const res = await fetch("/transactions", {
-
-                method: "POST",
-
-                credentials: "same-origin",
-
-                headers: {
-
-                    "Content-Type": "application/json",
-
-                    "Accept": "application/json",
-
-                    "X-CSRF-TOKEN":
+        const res = await fetch("/transactions", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-CSRF-TOKEN":
                     document.querySelector(
                         'meta[name="csrf-token"]'
                     ).content
-                },
+            },
+            body: JSON.stringify({
+                cart: Object.values(cart),
+                payment_method: paymentMethod,
+                payment_amount: receivedAmount,
+                received_amount: receivedAmount,
+                change_amount: Math.max(receivedAmount - total, 0)
+            })
+        });
 
-                body: JSON.stringify({
+        const data = await res.json();
 
-                    cart: Object.values(cart),
+        if (!res.ok) {
+            throw data;
+        }
 
-                    payment_method: paymentMethod
+        // ===========================
+        // PRINT VIA ANDROID WEBVIEW
+        // ===========================
 
-                })
-            });
+        if (
+            window.AndroidPrinter &&
+            typeof window.AndroidPrinter.printReceipt === "function"
+        ) {
 
-            const data = await res.json();
+            window.AndroidPrinter.printReceipt(
+                JSON.stringify(data)
+            );
+        }
 
-            if (!res.ok) {
-                throw data;
-            }
+        loadingContent.innerHTML = `
+            <div class="bg-white rounded-2xl p-10 w-full max-w-lg">
 
-            loadingContent.innerHTML = `
+                <div class="text-center">
 
-                <div class="bg-white rounded-2xl p-10 w-full max-w-lg">
-
-                    <div class="w-24 h-24 mx-auto rounded-full bg-green-100 flex items-center justify-center">
-
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="w-12 h-12 text-green-600"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor">
-
-                            <path stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5 13l4 4L19 7"/>
-
-                        </svg>
-
+                    <div class="text-3xl font-bold text-green-600">
+                        ✓
                     </div>
 
-                    <h2 class="text-4xl font-bold text-center mt-5">
+                    <h2 class="text-2xl font-bold mt-4">
                         Transaksi Berhasil
                     </h2>
 
-                    <div class="text-center text-gray-500 mt-2">
+                    <div class="mt-2">
                         ${data.order_number}
                     </div>
 
-                    <div class="text-center text-2xl font-bold mt-2">
+                    <div class="text-xl font-bold mt-2">
                         ${rupiah(data.total)}
                     </div>
 
                     <button
                         id="finish-payment"
-                        class="w-full mt-6 bg-blue-600 text-white py-4 rounded-xl font-bold">
+                        class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg">
 
                         Pesanan Baru
 
@@ -680,32 +664,38 @@ window.checkout = async function () {
 
                 </div>
 
-            `;
+            </div>
+        `;
 
-            cart = {};
-            renderCart();
+        cart = {};
 
-            document.getElementById('finish-payment')
-            .onclick = function() {
+        renderCart();
 
-                hideLoading();
-            };
-
-        } catch (err) {
-
+        document.getElementById("finish-payment").onclick = function () {
             hideLoading();
+        };
 
-            alert(
-                err.error ||
-                err.message ||
-                'Gagal transaksi'
-            );
+    } catch (err) {
 
-        } finally {
+        hideLoading();
 
-            isCheckoutProcessing = false;
+        alert(
+            err.error ||
+            err.message ||
+            "Gagal transaksi"
+        );
+
+    } finally {
+
+        const btn = document.getElementById("process-payment");
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "Proses Pembayaran";
         }
-    };
-    }
 
+        isCheckoutProcessing = false;
+    }
+};
+};
 });
