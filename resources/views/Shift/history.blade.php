@@ -62,20 +62,24 @@
 
             @endif
 
-            {{-- DATE FROM --}}
-            <input
-                type="date"
-                name="from"
-                value="{{ request('from') }}"
-                class="border rounded-lg px-4 py-2 text-sm">
+            {{-- RANGE TANGGAL --}}
+            <div class="flex items-center gap-2">
+                <input
+                    type="date"
+                    name="from"
+                    value="{{ request('from') }}"
+                    class="border rounded-lg px-4 py-2 text-sm">
 
-            {{-- DATE TO --}}
-            <input
-                type="date"
-                name="to"
-                value="{{ request('to') }}"
-                class="border rounded-lg px-4 py-2 text-sm">
+                <span class="text-sm font-medium text-gray-500 whitespace-nowrap">
+                    s/d
+                </span>
 
+                <input
+                    type="date"
+                    name="to"
+                    value="{{ request('to') }}"
+                    class="border rounded-lg px-4 py-2 text-sm">
+            </div>
             {{-- KASIR --}}
             <select
                 name="kasir"
@@ -271,29 +275,63 @@
         {{-- ========================= --}}
         {{-- DESKTOP TABLE --}}
         {{-- ========================= --}}
-        <div class="hidden md:block">
+        <div class="hidden md:block overflow-x-auto w-full">
 
-            <table class="w-full table-fixed text-sm border-collapse">
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
 
-                <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+            <table class="min-w-[1200px] w-full text-sm border-collapse">
 
-                    <tr>
+                <thead class="bg-gray-100">
 
-                        <th class="px-3 py-3 border border-gray-200 text-left">Tanggal</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Outlet</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Kasir</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Shift</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Pesanan</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Cash</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">QRIS</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Total</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Uang Modal</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Pengeluaran</th>
-                        <th class="px-3 py-3 border border-gray-200 text-left">Aksi</th>
+                        <tr class="text-xs uppercase text-gray-600">
 
-                    </tr>
+                        <th class="w-32 px-4 py-4 border font-semibold text-left">
+                            Tanggal
+                        </th>
 
-                </thead>
+                        <th class="w-32 px-4 py-4 border font-semibold text-left">
+                            Outlet
+                        </th>
+
+                        <th class="w-36 px-4 py-4 border font-semibold text-left">
+                            Kasir
+                        </th>
+
+                        <th class="w-24 px-4 py-4 border font-semibold text-center">
+                            Shift
+                        </th>
+
+                        <th class="w-24 px-4 py-4 border font-semibold text-center">
+                            Pesanan
+                        </th>
+
+                        <th class="w-36 px-4 py-4 border font-semibold text-right">
+                            Cash
+                        </th>
+
+                        <th class="w-36 px-4 py-4 border font-semibold text-right">
+                            QRIS
+                        </th>
+
+                        <th class="w-40 px-4 py-4 border font-semibold text-right">
+                            Total
+                        </th>
+
+                        <th class="w-40 px-4 py-4 border font-semibold text-right">
+                            Uang Modal
+                        </th>
+
+                        <th class="w-40 px-4 py-4 border font-semibold text-right">
+                            Pengeluaran
+                        </th>
+
+                        <th class="w-36 px-4 py-4 border font-semibold text-center">
+                            Aksi
+                        </th>
+
+                        </tr>
+
+                        </thead>
 
                 <tbody>
 
@@ -313,31 +351,31 @@
 
                     <tr class="hover:bg-gray-50">
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             {{ \Carbon\Carbon::parse($shift->tanggal)->format('d M Y') }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             {{ ucfirst($shift->outlet) }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             {{ $shift->kasir }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             {{ $shiftLabel }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             {{ $shift->total_transaksi }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             Rp {{ number_format($shift->cash_total,0,',','.') }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             Rp {{ number_format($shift->qris_total,0,',','.') }}
                         </td>
 
@@ -345,15 +383,15 @@
                             Rp {{ number_format($shift->total_penjualan,0,',','.') }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             Rp {{ number_format($shift->uang_modal,0,',','.') }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
                             Rp {{ number_format($shift->pengeluaran_lainnya ?? 0,0,',','.') }}
                         </td>
 
-                        <td class="px-3 py-3 border border-gray-200">
+                        <td class="px-4 py-4 border text-right whitespace-nowrap">
 
                             <button
                                 type="button"
@@ -401,7 +439,8 @@
                 </tbody>
 
             </table>
-
+        </table>
+        </div>
         </div>
 
         {{-- PAGINATION --}}

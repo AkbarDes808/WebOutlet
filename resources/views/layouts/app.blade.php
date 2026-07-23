@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
     <title>Wish Chicken</title>
 
@@ -18,6 +18,21 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+    html{
+        background:#F5F6F8;
+    }
+
+    body{
+        padding-top:env(safe-area-inset-top);
+    }
+
+    @supports (padding-top: constant(safe-area-inset-top)){
+        body{
+            padding-top:constant(safe-area-inset-top);
+        }
+    }
+    </style>
 </head>
 
 <body class="bg-gray-100 min-h-screen flex overflow-x-hidden">
@@ -27,11 +42,12 @@
 
 <!-- SIDEBAR -->
 <aside id="sidebar"
-class="fixed inset-y-0 left-0 w-64 bg-[#F5F6F8] border-r flex flex-col 
-transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z-50">
+class="fixed left-0 top-0 bottom-0 w-64 bg-[#F5F6F8] border-r flex flex-col
+transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z-50
+pt-[env(safe-area-inset-top)]">
 
     <!-- LOGO -->
-    <div class="flex items-center gap-3 px-5 py-4 border-b">
+    <div class="flex items-center gap-3 px-5 h-24 border-b shrink-0">
         <div class="w-9 h-9 bg-yellow-400 rounded-lg flex items-center justify-center text-xl">
             🍗
         </div>
