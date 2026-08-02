@@ -34,7 +34,41 @@
     }
     </style>
 </head>
+<script>
 
+function confirmLogout() {
+
+    Swal.fire({
+        title: 'Keluar Akun?',
+        html: `
+            <div class="text-sm text-gray-600">
+                Shift Anda masih berjalan.<br>
+                Pilih tindakan yang ingin dilakukan.
+            </div>
+        `,
+        icon: 'question',
+
+        showConfirmButton: false, // <-- tambahkan ini
+        showCancelButton: true,
+        showDenyButton: true,
+
+        denyButtonText: 'Tutup Shift',
+        cancelButtonText: 'Batal',
+
+        denyButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280'
+
+    }).then((result) => {
+
+        if (result.isDenied) {
+            window.location.href = "{{ route('shift.index') }}";
+        }
+
+    });
+
+}
+
+</script>
 <body class="bg-gray-100 min-h-screen flex overflow-x-hidden">
 
 <!-- OVERLAY -->
@@ -193,19 +227,24 @@ pt-[env(safe-area-inset-top)]">
         <hr class="my-2">
 
         {{-- LOGOUT --}}
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-
+        <form id="logoutForm" method="POST" action="{{ route('logout') }}">
+            @php
+                $shiftClosed = auth()->check()
+                    ? \App\Models\ShiftClosing::where('user_id', auth()->id())
+                        ->whereDate('tanggal', now()->toDateString())
+                        ->exists()
+                    : false;
+            @endphp
+            @csrf   
             <button
-                type="submit"
+                type="button"
+                onclick="{{ $shiftClosed ? 'document.getElementById(\'logoutForm\').submit()' : 'confirmLogout()' }}"
                 class="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-200 rounded-lg">
 
                 <i class="fa-solid fa-right-from-bracket"></i>
                 Logout
-
             </button>
         </form>
-
     </nav>
 
     <!-- USER -->
@@ -221,7 +260,7 @@ pt-[env(safe-area-inset-top)]">
 </aside>
 
 <!-- MAIN -->
-<div class="flex-1 flex flex-col w-full lg:ml-64">
+<div class="flex-1 flex flex-col min-w-0 w-full lg:ml-64 overflow-hidden">
 
     <!-- HEADER MOBILE -->
     <header
@@ -231,7 +270,7 @@ pt-[env(safe-area-inset-top)]">
     </header>
 
     <!-- CONTENT -->
-    <main class="flex-1 p-4 sm:p-6">
+    <main class="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         @yield('content')
     </main>
 
@@ -313,15 +352,16 @@ document.addEventListener("visibilitychange", () => {
 <script>
 
 Swal.fire({
-
     icon: 'warning',
-
     title: 'Shift Selesai',
-
     text: "{{ session('shift_closed') }}",
 
-    confirmButtonText: 'OK'
+    showConfirmButton: false,
+    showCancelButton: false,
+    showDenyButton: false,
 
+    allowOutsideClick: true,
+    allowEscapeKey: true,
 });
 
 </script>

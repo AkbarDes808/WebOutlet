@@ -166,8 +166,13 @@ class ShiftClosingController extends Controller
 
                 'catatan' => $request->catatan,
 
+
             ]);
 
+            $user->update([
+                'shift_started_at' => null,
+            ]);
+            
             DB::commit();
 
             auth()->logout();
