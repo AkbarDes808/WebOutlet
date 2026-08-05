@@ -165,289 +165,127 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-
-    function closeModal(){
-        const modal =
-        document.getElementById('detail-modal');
-
-        if(modal){
-            modal.remove();
-        }
-
-    }
-    function rupiah(value){
-
-        return 'Rp ' +
-        Number(value ?? 0)
-        .toLocaleString('id-ID');
-
+    function closeModal() {
+        const modal = document.getElementById('detail-modal');
+        if (modal) modal.remove();
     }
 
-    document.addEventListener('click', async function(e){
+    function rupiah(value) {
+        return 'Rp ' + Number(value ?? 0).toLocaleString('id-ID');
+    }
 
+    document.addEventListener('click', async (e) => {
 
-        const btn =
-            e.target.closest('.btn-detail');
-
-
-        if(!btn) return;
+        const btn = e.target.closest('.btn-detail');
+        if (!btn) return;
 
         const id = btn.dataset.id;
-        document.body.insertAdjacentHTML(
-        'beforeend',
 
-        `
-
-        <div id="detail-modal"
-        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-
-
-            <div class="bg-white rounded-xl p-8 flex flex-col items-center gap-4">
-
-
-                <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-
-
-                <div class="text-gray-600 font-medium">
-
-                    Memuat detail...
-
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="detail-modal" class="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl p-8 flex flex-col items-center gap-4">
+                    <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div class="text-gray-600">Memuat detail...</div>
                 </div>
-
-
             </div>
-
-
-        </div>
-
-        `
-
-        );
-
-
+        `);
 
         try {
 
-
-            const res =
-            await fetch(`/transactions/${id}/detail`);
-
-
-
-            const data =
-            await res.json();
-
-
+            const res = await fetch('/transactions/' + id + '/detail');
+            const data = await res.json();
 
             let itemsHTML = '';
 
-
-
-            data.items.forEach(item=>{
-
-
+            data.items.forEach(item => {
                 itemsHTML += `
-
-                <div class="flex justify-between">
-
-                    <span>
-                        ${item.qty}x ${item.menu_name}
-                    </span>
-
-                    <span>
-                        ${rupiah(item.subtotal)}
-                    </span>
-
-                </div>
-
+                    <div class="flex justify-between gap-3">
+                        <span class="flex-1 break-words">${item.qty}x ${item.menu_name}</span>
+                        <span>${rupiah(item.subtotal)}</span>
+                    </div>
                 `;
-
-
             });
 
+            document.getElementById('detail-modal').innerHTML = `
+                <div class="w-full h-full flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
 
+                        <div class="flex justify-between items-center p-4 border-b">
+                            <h2 class="text-lg font-bold">Detail Transaksi</h2>
+                            <button id="close-modal" class="text-2xl">&times;</button>
+                        </div>
 
+                        <div class="p-4 font-mono text-sm">
 
+                            <div class="text-center mb-4">
+                                <div class="font-bold text-xl">WISH CHICKEN</div>
+                                <div>${data.trx.order_number}</div>
+                            </div>
 
-           document.getElementById('detail-modal').innerHTML = `
+                            <hr>
 
+                            <div class="my-4 space-y-2">
+                                <div>Kasir : ${data.trx.kasir_name}</div>
+                                <div>Outlet : ${data.trx.nama_outlet}</div>
+                                <div>Metode : ${data.trx.payment_method.toUpperCase()}</div>
+                            </div>
 
-            <div class="bg-white rounded-xl p-6 w-full max-w-xl">
+                            <hr>
 
+                            <div class="my-4 space-y-2">
+                                ${itemsHTML}
+                            </div>
 
-                <div class="flex justify-between mb-5">
+                            <hr>
 
-                    <h2 class="text-xl font-bold">
-                        Detail Transaksi
-                    </h2>
+                            <div class="mt-4 space-y-2">
+                                <div class="flex justify-between">
+                                    <span>BAYAR</span>
+                                    <span>${rupiah(data.trx.payment_amount)}</span>
+                                </div>
 
+                                <div class="flex justify-between">
+                                    <span>KEMBALIAN</span>
+                                    <span>${rupiah(data.trx.change_amount)}</span>
+                                </div>
 
-                    <button id="close-modal"
-                        class="text-xl">
-                        ×
-                    </button>
+                                <div class="flex justify-between font-bold text-green-600">
+                                    <span>TOTAL</span>
+                                    <span>${rupiah(data.trx.total)}</span>
+                                </div>
+                            </div>
 
+                        </div>
 
+                    </div>
                 </div>
-
-
-
-                <div class="font-mono border rounded-lg p-5">
-
-
-                    <div class="text-center mb-4">
-
-                        <div class="font-bold text-xl">
-                            WISH CHICKEN
-                        </div>
-
-                        <div>
-                            ${data.trx.order_number}
-                        </div>
-
-                    </div>
-
-
-                    <hr>
-
-
-                    <div class="my-4 space-y-1">
-
-
-                        <div>
-                            Kasir :
-                            ${data.trx.kasir_name}
-                        </div>
-
-
-                        <div>
-                            Outlet :
-                            ${data.trx.nama_outlet}
-                        </div>
-
-
-                        <div>
-                            Metode :
-                            ${data.trx.payment_method.toUpperCase()}
-                        </div>
-
-
-                    </div>
-
-
-
-                    <hr>
-
-
-
-                    <div class="my-4 space-y-2">
-
-                        ${itemsHTML}
-
-                    </div>
-
-
-
-                    <hr>
-
-
-
-                    <div class="mt-4 space-y-2">
-
-                        <div class="flex justify-between">
-
-                            <span>
-                                BAYAR
-                            </span>
-
-                            <span>
-                                ${rupiah(data.trx.payment_amount)}
-                            </span>
-
-                        </div>
-
-                        <div class="flex justify-between">
-
-                            <span>
-                                KEMBALIAN
-                            </span>
-
-                            <span>
-                                ${rupiah(data.trx.change_amount)}
-                            </span>
-
-                        </div>
-
-                        <div class="flex justify-between font-bold text-green-600">
-
-                            <span>
-                                TOTAL
-                            </span>
-
-                            <span>
-                                ${rupiah(data.trx.total)}
-                            </span>
-
-                        </div>
-                    </div>
-
-
-                </div>
-
-
-            </div>
-
-
             `;
 
+            document.getElementById('close-modal').onclick = closeModal;
 
-
-
-            document
-            .getElementById('close-modal')
-            .onclick = closeModal;
-
-
-
-        }
-
-        catch(error){
+        } catch (error) {
 
             console.error(error);
 
-            modal.innerHTML = `
-
-            <div class="bg-white p-6 rounded-xl">
-                Gagal mengambil detail transaksi
-            </div>
-
+            document.getElementById('detail-modal').innerHTML = `
+                <div class="w-full h-full flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl p-6">
+                        Gagal mengambil detail transaksi.
+                    </div>
+                </div>
             `;
 
         }
 
-
     });
 
-
-
-
-
-    document.addEventListener('click', e => {
-
+    document.addEventListener('click', (e) => {
         const modal = document.getElementById('detail-modal');
 
-        if(
-            modal &&
-            e.target === modal
-        ){
-
+        if (modal && e.target === modal) {
             closeModal();
-
         }
-
     });
-
-
 
 });
 </script>
