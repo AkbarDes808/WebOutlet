@@ -222,7 +222,17 @@ pt-[env(safe-area-inset-top)]">
             </a>
 
         @endif
+        <!-- PRINTER -->
+        <button
+            type="button"
+            onclick="testBluetoothPrinter()"
+            class="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-200 rounded-lg">
 
+            <i class="fa-solid fa-print"></i>
+            Test Printer
+        </button>
+
+        <hr class="my-2">
         {{-- USERS ADMIN --}}
         <hr class="my-2">
 
@@ -367,7 +377,26 @@ Swal.fire({
 </script>
 
 @endif
+<script>
+function testBluetoothPrinter() {
 
+    // Cek apakah sedang berjalan di aplikasi Android
+    if (
+        typeof AndroidPrinter === 'undefined' ||
+        typeof AndroidPrinter.testPrinter !== 'function'
+    ) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Tidak tersedia',
+            text: 'Fitur printer Bluetooth hanya tersedia di aplikasi Android.'
+        });
+
+        return;
+    }
+
+    AndroidPrinter.testPrinter();
+}
+</script>
 
 </body>
 </html>
