@@ -52,10 +52,78 @@
                         </div>
 
                         <div>
-                            <div class="mt-1">
-                                <input id="password" name="password" type="password" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                       placeholder="Enter your password">
+                            <div class="mt-1 relative">
+
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Enter your password"
+                                >
+
+                                <button
+                                    type="button"
+                                    id="toggle-password"
+                                    class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    aria-label="Tampilkan password"
+                                >
+
+                                    <!-- ICON MATA -->
+                                    <svg
+                                        id="eye-open"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                        />
+
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                    </svg>
+
+                                    <!-- ICON MATA TERTUTUP -->
+                                    <svg
+                                        id="eye-closed"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5 hidden"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 012.154-3.47"
+                                        />
+
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6.228 6.228A9.95 9.95 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.96 9.96 0 01-4.132 5.411"
+                                        />
+
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6.228 6.228L3 3m3.228 3.228l3.07 3.07m0 0a3 3 0 104.243 4.243M9.298 9.298l4.243 4.243m0 0L21 21"
+                                        />
+                                    </svg>
+
+                                </button>
+
                             </div>
                         </div>
                         
@@ -78,5 +146,43 @@
 </div>
 
     </div>
+    <script>
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('toggle-password');
+
+    const eyeOpen = document.getElementById('eye-open');
+    const eyeClosed = document.getElementById('eye-closed');
+
+    togglePassword.addEventListener('click', function () {
+
+        if (passwordInput.type === 'password') {
+
+            // Tampilkan password
+            passwordInput.type = 'text';
+
+            eyeOpen.classList.add('hidden');
+            eyeClosed.classList.remove('hidden');
+
+            togglePassword.setAttribute(
+                'aria-label',
+                'Sembunyikan password'
+            );
+
+        } else {
+
+            // Sembunyikan password
+            passwordInput.type = 'password';
+
+            eyeOpen.classList.remove('hidden');
+            eyeClosed.classList.add('hidden');
+
+            togglePassword.setAttribute(
+                'aria-label',
+                'Tampilkan password'
+            );
+        }
+
+    });
+</script>
 </body>
 </html>

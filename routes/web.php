@@ -11,6 +11,7 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\KasirController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ShiftClosingController;
+use App\Http\Controllers\DatabaseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -119,6 +120,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     [TransactionController::class,'receipt']
     );
 
+    // Route Dashoard Database
+    Route::prefix('database')->group(function () {
+
+        Route::get('/', [DatabaseController::class, 'index'])
+            ->name('database.index');
+
+        Route::get('/table/{table}', [DatabaseController::class, 'table'])
+            ->name('database.table');
+
+        Route::get('/table/{table}/create', [DatabaseController::class, 'create'])
+            ->name('database.create');
+
+        Route::post('/table/{table}', [DatabaseController::class, 'store'])
+            ->name('database.store');
+
+        Route::get('/table/{table}/edit/{id}', [DatabaseController::class, 'edit'])
+            ->name('database.edit');
+
+        Route::put('/table/{table}/{id}', [DatabaseController::class, 'update'])
+            ->name('database.update');
+
+        Route::delete('/table/{table}/{id}', [DatabaseController::class, 'destroy'])
+            ->name('database.destroy');
+    });
     // Route Baru tambah disini
     
 

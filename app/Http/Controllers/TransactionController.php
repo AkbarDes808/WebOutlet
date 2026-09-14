@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class TransactionController extends Controller
 {
-    public function store(Request $request)
-    {
+    public function store(
+        Request $request,
+        StockService $stockService
+    ) {
         $cart = $request->cart;
         $paymentMethod = $request->payment_method ?? 'cash';
         $paymentAmount = (int) ($request->payment_amount ?? 0);
@@ -17,8 +20,8 @@ class TransactionController extends Controller
         // =========================
         // VALIDASI CART
         // =========================
-        if (!$cart || count($cart) === 0) {
 
+        if (!$cart || count($cart) === 0) {
             return response()->json([
                 'message' => 'Cart kosong'
             ], 400);
@@ -31,9 +34,11 @@ class TransactionController extends Controller
             // =========================
             // USER LOGIN
             // =========================
+
             $user = auth()->user();
 
             if (!$user) {
+                DB::rollBack();
 
                 return response()->json([
                     'message' => 'User tidak login'
@@ -43,11 +48,14 @@ class TransactionController extends Controller
             // =========================
             // HITUNG TOTAL
             // =========================
+
             $subtotal = 0;
 
             foreach ($cart as $item) {
 
-                $subtotal += $item['price'] * $item['qty'];
+                $subtotal +=
+                    ((int) $item['price']) *
+                    ((int) $item['qty']);
             }
 
             $tax = 0;
@@ -56,62 +64,166 @@ class TransactionController extends Controller
             // =========================
             // GENERATE CODE
             // =========================
+
             $orderNumber = 'ORD-' . now()->format('YmdHis');
-            $kode = 'TRX-' . strtoupper(Str::random(6));
+
+            $kode = 'TRX-' . strtoupper(
+                Str::random(6)
+            );
 
             // =========================
             // DATA OUTLET & KASIR
             // =========================
-            $namaOutlet = $user->role;
+
+            /*
+             * Role user digunakan sebagai nama outlet.
+             *
+             * Contoh:
+             * outlet 1 -> stok outlet 1
+             * outlet 2 -> stok outlet 2
+             * outlet 3 -> stok outlet 3
+             */
+
+            $role = strtolower(trim($user->role ?? ''));
+            $outletMapping = [
+                'outlet 1' => 'Outlet 1',
+                'outlet 2' => 'Outlet 2',
+                'outlet 3' => 'Outlet 3',
+                'outlet 4' => 'Outlet 4',
+                'outlet 5' => 'Outlet 5',
+                'outlet 6' => 'Outlet 6',
+                'outlet 7' => 'Outlet 7',
+            ];
+
+            if ($role === 'admin' || $role === 'spv') {
+
+                $namaOutlet = trim((string) $request->input('outlet'));
+
+                if ($namaOutlet === '') {
+                    throw new \Exception(
+                        'Outlet belum dipilih. Silakan pilih outlet terlebih dahulu.'
+                    );
+                }
+
+                if (!in_array($namaOutlet, array_values($outletMapping), true)) {
+                    throw new \Exception(
+                        'Outlet transaksi tidak valid: ' . $namaOutlet
+                    );
+                }
+
+            } elseif (isset($outletMapping[$role])) {
+
+                $namaOutlet = $outletMapping[$role];
+
+            } else {
+
+                throw new \Exception(
+                    'Role user tidak memiliki outlet yang valid: ' . $user->role
+                );
+            }
             $kasirId = $user->id;
 
             // =========================
             // INSERT TRANSACTION
             // =========================
+
             $trxId = DB::table('transactions')->insertGetId([
 
                 'user_id' => $user->id,
+
                 'nama_outlet' => $namaOutlet,
+
                 'order_number' => $orderNumber,
+
                 'kode' => $kode,
+
                 'kasir_id' => $kasirId,
 
                 'subtotal' => $subtotal,
+
                 'tax' => $tax,
+
                 'total' => $total,
+
                 'payment_method' => $paymentMethod,
+
                 'payment_amount' => $paymentAmount,
+
                 'change_amount' => max(
                     0,
                     $paymentAmount - $total
                 ),
+
                 'status' => 'paid',
+
                 'created_at' => now(),
+
                 'updated_at' => now(),
             ]);
 
             // =========================
-            // INSERT ITEMS
+            // INSERT TRANSACTION ITEMS
             // =========================
+
             foreach ($cart as $item) {
 
-                $subtotalItem = $item['price'] * $item['qty'];
+                $subtotalItem =
+                    ((int) $item['price']) *
+                    ((int) $item['qty']);
 
                 DB::table('transaction_items')->insert([
 
                     'transaction_id' => $trxId,
 
                     'menu_name' => $item['name'],
+
                     'price' => $item['price'],
+
                     'qty' => $item['qty'],
+
                     'subtotal' => $subtotalItem,
 
                     'created_at' => now(),
+
                     'updated_at' => now(),
                 ]);
             }
 
+            // =========================
+            // POTONG STOK SESUAI OUTLET
+            // =========================
+            //
+            // Contoh:
+            //
+            // User = outlet 1
+            // Maka StockService hanya akan
+            // mengurangi stok pada:
+            //
+            // stock_item_outlets
+            // outlet = outlet 1
+            //
+            // Bukan stok outlet lainnya.
+            //
+            // Jika stok tidak cukup atau resep
+            // belum tersedia, exception akan terjadi
+            // dan transaksi akan di-rollback.
+            //
+
+            $stockService->deductForTransaction(
+                $trxId,
+                $cart,
+                $namaOutlet
+            );
+
+            // =========================
+            // COMMIT
+            // =========================
+
             DB::commit();
+
+            // =========================
+            // RESPONSE
+            // =========================
 
             return response()->json([
 
@@ -132,27 +244,41 @@ class TransactionController extends Controller
                 'tax' => $tax,
 
                 'total' => $total,
+
                 'payment_amount' => $paymentAmount,
+
                 'change_amount' => max(
                     0,
                     $paymentAmount - $total
                 ),
+
                 'payment_method' => $paymentMethod,
-                'created_at' => now()->format('d/m/Y H:i'),
-                'items' => collect($cart)->map(function ($item) {
 
-                    return [
-                        'name' => $item['name'],
-                        'qty' => $item['qty'],
-                        'price' => $item['price'],
-                        'subtotal' => $item['price'] * $item['qty'],
-                    ];
+                'created_at' => now()->format(
+                    'd/m/Y H:i'
+                ),
 
-                })->values(),
+                'items' => collect($cart)
+                    ->map(function ($item) {
 
+                        return [
+                            'name' => $item['name'],
+                            'qty' => $item['qty'],
+                            'price' => $item['price'],
+                            'subtotal' =>
+                                $item['price'] *
+                                $item['qty'],
+                        ];
+
+                    })
+                    ->values(),
             ]);
 
         } catch (\Exception $e) {
+
+            // =========================
+            // ROLLBACK
+            // =========================
 
             DB::rollBack();
 
@@ -162,7 +288,7 @@ class TransactionController extends Controller
 
                 'message' => 'Gagal transaksi',
 
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
 
             ], 500);
         }
@@ -173,7 +299,12 @@ class TransactionController extends Controller
         $user = auth()->user();
 
         $query = DB::table('transactions')
-            ->leftJoin('users', 'transactions.kasir_id', '=', 'users.id')
+            ->leftJoin(
+                'users',
+                'transactions.kasir_id',
+                '=',
+                'users.id'
+            )
             ->select(
                 'transactions.id',
                 'transactions.nama_outlet',
@@ -193,43 +324,80 @@ class TransactionController extends Controller
         // =========================
         // FILTER ROLE OUTLET
         // =========================
-        if ($user->role !== 'admin' && $user->role !== 'SPV') {
-            $query->where('transactions.nama_outlet', $user->role);
+
+        if (
+            $user->role !== 'admin' &&
+            $user->role !== 'SPV'
+        ) {
+
+            $query->where(
+                'transactions.nama_outlet',
+                $user->role
+            );
         }
 
         // =========================
         // FILTER OUTLET
         // =========================
+
         if ($request->filled('outlet')) {
-            $query->where('transactions.nama_outlet', $request->outlet);
+
+            $query->where(
+                'transactions.nama_outlet',
+                $request->outlet
+            );
         }
 
         // =========================
         // FILTER DATE FROM - TO
         // =========================
+
         if ($request->filled('from')) {
-            $query->whereDate('transactions.created_at', '>=', $request->from);
+
+            $query->whereDate(
+                'transactions.created_at',
+                '>=',
+                $request->from
+            );
         }
 
         if ($request->filled('to')) {
-            $query->whereDate('transactions.created_at', '<=', $request->to);
+
+            $query->whereDate(
+                'transactions.created_at',
+                '<=',
+                $request->to
+            );
         }
 
         // =========================
         // FILTER STATUS
         // =========================
+
         if ($request->filled('status')) {
-            $query->where('transactions.status', $request->status);
+
+            $query->where(
+                'transactions.status',
+                $request->status
+            );
         }
 
         // =========================
         // FILTER PAYMENT METHOD
         // =========================
+
         if ($request->filled('payment_method')) {
-            $query->where('transactions.payment_method', $request->payment_method);
+
+            $query->where(
+                'transactions.payment_method',
+                $request->payment_method
+            );
         }
 
-        // Filter untuk dropdown outlet
+        // =========================
+        // DROPDOWN OUTLET
+        // =========================
+
         $outlets = DB::table('transactions')
             ->select('nama_outlet')
             ->distinct()
@@ -239,12 +407,22 @@ class TransactionController extends Controller
         // =========================
         // RESULT
         // =========================
+
         $transactions = $query
-            ->orderBy('transactions.created_at', 'desc')
+            ->orderBy(
+                'transactions.created_at',
+                'desc'
+            )
             ->paginate(10)
             ->withQueryString();
 
-        return view('kasir.history', compact('transactions', 'outlets'));
+        return view(
+            'kasir.history',
+            compact(
+                'transactions',
+                'outlets'
+            )
+        );
     }
 
     public function detail($id)
@@ -262,59 +440,59 @@ class TransactionController extends Controller
                 'transactions.nama_outlet',
                 'transactions.payment_method',
                 'transactions.total',
-
-                // TAMBAHKAN INI
                 'transactions.payment_amount',
                 'transactions.change_amount',
-
                 'users.name as kasir_name'
             )
-            ->where('transactions.id', $id)
+            ->where(
+                'transactions.id',
+                $id
+            )
             ->first();
-
-
 
         if (!$trx) {
 
             return response()->json([
-                'success'=>false
-            ],404);
-
+                'success' => false
+            ], 404);
         }
 
-
-
         $items = DB::table('transaction_items')
-            ->where('transaction_id',$id)
+            ->where(
+                'transaction_id',
+                $id
+            )
             ->get();
-
-
 
         return response()->json([
 
-            'success'=>true,
+            'success' => true,
 
-            'trx'=>[
+            'trx' => [
 
-                'order_number'=>$trx->order_number,
+                'order_number' =>
+                    $trx->order_number,
 
-                'nama_outlet'=>$trx->nama_outlet,
+                'nama_outlet' =>
+                    $trx->nama_outlet,
 
-                'payment_method'=>$trx->payment_method,
+                'payment_method' =>
+                    $trx->payment_method,
 
-                'kasir_name'=>$trx->kasir_name,
+                'kasir_name' =>
+                    $trx->kasir_name,
 
-                'total'=>$trx->total,
+                'total' =>
+                    $trx->total,
 
-                'payment_amount'=>$trx->payment_amount,
+                'payment_amount' =>
+                    $trx->payment_amount,
 
-                'change_amount'=>$trx->change_amount,
-
+                'change_amount' =>
+                    $trx->change_amount,
             ],
 
-
-            'items'=>$items
-
+            'items' => $items
         ]);
     }
 }
