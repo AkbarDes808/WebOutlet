@@ -1,166 +1,203 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto p-4 sm:p-6">
-    <h1 class="text-2xl font-bold mb-4">📊 Riwayat Stok Bahan & Kemasan</h1>
+<div class="min-h-screen bg-[#F5F6F8] px-3 py-4 sm:px-6 lg:px-8">
 
-    {{-- FILTER OUTLET --}}
-    @if(Auth::user()->role !== 'outlet')
-    <div class="mb-6 border-t pt-6">
-        <form action="{{ route('bahans.history') }}" method="GET">
-            <select name="outlet"
-                    onchange="this.form.submit()"
-                    class="block w-full md:w-1/3 border rounded p-2 bg-white">
-                <option value="">-- Semua Outlet --</option>
-                @foreach ($outlets as $outlet)
-                    <option value="{{ $outlet }}"
-                        {{ $selectedOutlet == $outlet ? 'selected' : '' }}>
-                        {{ $outlet }}
-                    </option>
-                @endforeach
-            </select>
-        </form>
-    </div>
-    @endif
+    <div class="mb-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">
+                    History Bahan
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    Riwayat penambahan dan penggunaan stok
+                </p>
+            </div>
 
-    @php
-        /**
-         * FORMAT ANGKA INDONESIA
-         */
-        function formatAngka($value) {
-            if ($value === null) return '0';
-
-            $angka = (float)$value;
-            $formatted = number_format($angka, 2, ',', '.');
-
-            return rtrim(rtrim($formatted, '0'), ',');
-        }
-
-        $fields = [
-            // ===== BAHAN LAMA =====
-            'tepung_roti'  => 'Tepung Roti',
-            'tepung_bumbu' => 'Tepung Bumbu',
-            'garam'        => 'Garam',
-            'bubuk_cabe'   => 'Bubuk Cabe',
-            'telur'        => 'Telur',
-            'gula'         => 'Gula',
-            'ayam'         => 'Ayam',
-
-            // ===== BAHAN BARU =====
-            'tepung'       => 'Tepung',
-            'teh'          => 'Teh',
-            'beras'        => 'Beras',
-            'cup'          => 'Cup',
-
-            // ===== KEMASAN =====
-            'kertas_chicken_kecil'   => 'Kertas Chicken Kecil',
-            'kertas_chicken_sedang'  => 'Kertas Chicken Sedang',
-            'kertas_chicken_besar'   => 'Kertas Chicken Besar',
-
-            'dus_chicken'            => 'Dus Chicken',
-            'dus_chicken_jumbo'      => 'Dus Chicken Jumbo',
-
-            'plastik_cup_isi_1'      => 'Plastik Cup Isi 1',
-            'plastik_cup_isi_2'      => 'Plastik Cup Isi 2',
-
-            'plastik_ayam_kecil'     => 'Plastik Ayam Kecil',
-            'plastik_sedang'         => 'Plastik Sedang',
-            'plastik_tanggung'       => 'Plastik Tanggung',
-            'plastik_besar'          => 'Plastik Besar',
-            'plastik_jumbo'          => 'Plastik Jumbo',
-        ];
-    @endphp
-
-    {{-- ================= MOBILE ================= --}}
-    <div class="md:hidden space-y-4">
-        @forelse($history as $record)
-            <div class="bg-white border rounded-lg shadow">
-                <div class="bg-gray-50 p-3 flex justify-between items-center">
-                    <p class="font-semibold text-sm">
-                        {{ \Carbon\Carbon::parse($record->created_at)->format('d M Y, H:i') }}
-                    </p>
-                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                        {{ $record->nama_outlet }}
-                    </span>
+            @if($isAdminOrSpv)
+                <form method="GET" action="{{ route('bahans.history') }}">
+                    <select
+                        name="outlet"
+                        onchange="this.form.submit()"
+                        class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 sm:w-auto"
+                    >
+                        @foreach($outlets as $outlet)
+                            <option
+                                value="{{ strtolower($outlet) }}"
+                                {{ strtolower($selectedOutlet) === strtolower($outlet) ? 'selected' : '' }}
+                            >
+                                {{ $outlet }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+            @else
+                <div class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm">
+                    {{ $selectedOutlet }}
                 </div>
+            @endif
+        </div>
+    </div>
 
-                <div class="p-3 grid grid-cols-2 gap-y-2 text-sm">
-                    @foreach($fields as $key => $label)
-                        @php
-                            $change = (float) ($record->data[$key]->change ?? 0);
-                            $total  = (float) ($record->data[$key]->total  ?? 0);
-                        @endphp
+    @if(empty($history))
+        <div class="rounded-2xl bg-white p-8 text-center shadow-sm">
+            <div class="text-4xl">📦</div>
+            <p class="mt-3 font-semibold text-gray-800">
+                Belum ada history
+            </p>
+            <p class="mt-1 text-sm text-gray-500">
+                Belum ada penambahan atau penggunaan stok untuk outlet ini.
+            </p>
+        </div>
+    @else
+        <div class="space-y-4">
 
-                        <div class="text-gray-600">{{ $label }}</div>
+            @foreach($history as $record)
+                @php
+                    $items = $record['items'] ?? [];
+                    $isUsage = ($record['type'] ?? '') === 'usage';
+                @endphp
 
-                        <div class="text-right font-semibold">
-                            {{ formatAngka($total) }}
-                            <span class="text-xs ml-1
-                                {{ $change > 0 ? 'text-green-600' : ($change < 0 ? 'text-red-600' : 'text-gray-400') }}">
-                                (
-                                {{ $change > 0 ? '+' : '' }}{{ formatAngka($change) }}
-                                )
-                            </span>
+                <div class="overflow-hidden rounded-2xl bg-white shadow-sm">
+
+                    <div class="border-b border-gray-100 px-4 py-4 sm:px-5">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-sm font-bold text-gray-900">
+                                        {{ \Carbon\Carbon::parse($record['created_at'])->format('d M Y, H:i:s') }}
+                                    </span>
+
+                                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                                        {{ $record['nama_outlet'] }}
+                                    </span>
+
+                                    @if($isUsage)
+                                        <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+                                            Penggunaan POS
+                                        </span>
+                                    @else
+                                        <span class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-600">
+                                            Penambahan
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if(!empty($record['order_number']))
+                                    <div class="mt-1 text-xs text-gray-500">
+                                        Order:
+                                        <span class="font-semibold text-gray-700">
+                                            {{ $record['order_number'] }}
+                                        </span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if(!empty($record['transaction_id']))
+                                <div class="text-xs text-gray-400">
+                                    Transaksi #{{ $record['transaction_id'] }}
+                                </div>
+                            @endif
+
                         </div>
-                    @endforeach
-                </div>
-            </div>
-        @empty
-            <div class="text-center p-6 text-gray-500 bg-white border rounded">
-                Tidak ada riwayat stok.
-            </div>
-        @endforelse
-    </div>
+                    </div>
 
-    {{-- ================= DESKTOP ================= --}}
-    <div class="hidden md:block overflow-x-auto">
-        <table class="min-w-full border text-sm bg-white">
-            <thead class="bg-gray-100 text-center">
-                <tr>
-                    <th class="p-2 border">Tanggal & Waktu</th>
-                    <th class="p-2 border">Outlet</th>
-                    @foreach($fields as $label)
-                        <th class="p-2 border">{{ $label }}</th>
-                    @endforeach
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($history as $record)
-                    <tr class="text-center hover:bg-gray-50">
-                        <td class="p-2 border whitespace-nowrap">
-                            {{ \Carbon\Carbon::parse($record->created_at)->format('d M Y, H:i:s') }}
-                        </td>
-                        <td class="p-2 border font-semibold">
-                            {{ $record->nama_outlet }}
-                        </td>
+                    <div class="hidden overflow-x-auto md:block">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-5 py-3 text-left font-semibold text-gray-600">
+                                        Item
+                                    </th>
+                                    <th class="px-5 py-3 text-right font-semibold text-gray-600">
+                                        Perubahan
+                                    </th>
+                                    <th class="px-5 py-3 text-right font-semibold text-gray-600">
+                                        Total
+                                    </th>
+                                </tr>
+                            </thead>
 
-                        @foreach($fields as $key => $label)
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach($items as $item)
+                                    @php
+                                        $change = (float) ($item['change'] ?? 0);
+                                        $total = (float) ($item['total'] ?? 0);
+                                    @endphp
+
+                                    <tr>
+                                        <td class="px-5 py-3 font-medium text-gray-800">
+                                            {{ $item['nama'] }}
+                                        </td>
+
+                                        <td class="px-5 py-3 text-right">
+                                            @if($change > 0)
+                                                <span class="font-bold text-green-600">
+                                                    +{{ number_format($change, 0, ',', '.') }}
+                                                </span>
+                                            @elseif($change < 0)
+                                                <span class="font-bold text-red-600">
+                                                    {{ number_format($change, 0, ',', '.') }}
+                                                </span>
+                                            @else
+                                                <span class="text-gray-400">0</span>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-5 py-3 text-right font-bold text-gray-900">
+                                            {{ number_format($total, 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="divide-y divide-gray-100 md:hidden">
+                        @foreach($items as $item)
                             @php
-                                $change = (float) ($record->data[$key]->change ?? 0);
-                                $total  = (float) ($record->data[$key]->total  ?? 0);
+                                $change = (float) ($item['change'] ?? 0);
+                                $total = (float) ($item['total'] ?? 0);
                             @endphp
 
-                            <td class="p-2 border">
-                                <div class="font-semibold">
-                                    {{ formatAngka($total) }}
+                            <div class="flex items-center justify-between gap-3 px-4 py-3">
+                                <div class="min-w-0">
+                                    <div class="truncate text-sm font-semibold text-gray-800">
+                                        {{ $item['nama'] }}
+                                    </div>
+
+                                    <div class="mt-1 text-xs text-gray-500">
+                                        Total:
+                                        <span class="font-semibold text-gray-700">
+                                            {{ number_format($total, 0, ',', '.') }}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="text-xs
-                                    {{ $change > 0 ? 'text-green-600' : ($change < 0 ? 'text-red-600' : 'text-gray-400') }}">
-                                    {{ $change > 0 ? '+' : '' }}{{ formatAngka($change) }}
+
+                                <div class="shrink-0 text-right">
+                                    @if($change > 0)
+                                        <div class="font-bold text-green-600">
+                                            +{{ number_format($change, 0, ',', '.') }}
+                                        </div>
+                                    @elseif($change < 0)
+                                        <div class="font-bold text-red-600">
+                                            {{ number_format($change, 0, ',', '.') }}
+                                        </div>
+                                    @else
+                                        <div class="font-bold text-gray-400">
+                                            0
+                                        </div>
+                                    @endif
                                 </div>
-                            </td>
+                            </div>
                         @endforeach
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="{{ count($fields) + 2 }}"
-                            class="p-6 text-center text-gray-500">
-                            Tidak ada riwayat stok.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                    </div>
+
+                </div>
+            @endforeach
+
+        </div>
+    @endif
 </div>
 @endsection
