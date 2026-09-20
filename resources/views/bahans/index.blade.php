@@ -3,168 +3,129 @@
 @section('content')
 
 @php
+    $isOutlet = preg_match(
+        '/^outlet\s\d+$/i',
+        trim(Auth::user()->role)
+    );
 
-$isOutlet = preg_match(
-    '/^outlet\s\d+$/i',
-    trim(Auth::user()->role)
-);
+    $rows = [
+        'garam' => 'Garam',
+        'tepung' => 'Tepung',
+        'teh' => 'Teh',
+        'beras' => 'Beras',
+        'plastik_sedang' => 'Plastik Sedang',
+        'dus_chicken' => 'Dus Chicken',
+        'dus_chicken_jumbo' => 'Dus Chicken Jumbo',
+    ];
 
-$rows = [
+    $ayamStockItems = collect();
 
-    'tepung_roti' => 'Tepung Roti',
-
-    'tepung_bumbu' => 'Tepung Bumbu',
-
-    'garam' => 'Garam',
-
-    'bubuk_cabe' => 'Bubuk Cabe',
-
-    'telur' => 'Telur',
-
-    'gula' => 'Gula',
-
-    'ayam' => 'Ayam',
-
-    'tepung' => 'Tepung',
-
-    'teh' => 'Teh',
-
-    'beras' => 'Beras',
-
-    'cup' => 'Cup',
-
-    'kertas_chicken_kecil' => 'Kertas Chicken Kecil',
-
-    'kertas_chicken_sedang' => 'Kertas Chicken Sedang',
-
-    'kertas_chicken_besar' => 'Kertas Chicken Besar',
-
-    'dus_chicken' => 'Dus Chicken',
-
-    'dus_chicken_jumbo' => 'Dus Chicken Jumbo',
-
-    'plastik_cup_isi_1' => 'Plastik Cup Isi 1',
-
-    'plastik_cup_isi_2' => 'Plastik Cup Isi 2',
-
-    'plastik_ayam_kecil' => 'Plastik Ayam Kecil',
-
-    'plastik_sedang' => 'Plastik Sedang',
-
-    'plastik_tanggung' => 'Plastik Tanggung',
-
-    'plastik_besar' => 'Plastik Besar',
-
-    'plastik_jumbo' => 'Plastik Jumbo',
-
-];
-
-function formatAngka($value)
-{
-    if ($value === null) {
-        return '0';
+    if (isset($stockItems)) {
+        $ayamStockItems = $stockItems->filter(function ($stockItem) {
+            return in_array(
+                strtolower(trim($stockItem->nama ?? '')),
+                [
+                    'ayam - sayap',
+                    'ayam - paha bawah',
+                    'ayam - dada',
+                    'ayam - paha atas',
+                ],
+                true
+            );
+        })->values();
     }
 
-    return rtrim(
-        rtrim(
-            number_format(
-                (float) $value,
-                2,
-                ',',
-                '.'
-            ),
-            '0'
-        ),
-        ','
-    );
-}
+    function formatAngka($value)
+    {
+        if ($value === null || $value === '') {
+            return '0';
+        }
 
+        return rtrim(
+            rtrim(
+                number_format(
+                    (float) $value,
+                    2,
+                    ',',
+                    '.'
+                ),
+                '0'
+            ),
+            ','
+        );
+    }
+
+    function getStockOutletValue($stockItemId, $stockOutletRows)
+    {
+        if (!$stockOutletRows) {
+            return 0;
+        }
+
+        $row = $stockOutletRows->firstWhere(
+            'stock_item_id',
+            $stockItemId
+        );
+
+        return $row->stok ?? 0;
+    }
+
+    function getStockTotalValue($stockItemId, $totalSemuaOutlet)
+    {
+        if (!$totalSemuaOutlet) {
+            return 0;
+        }
+
+        $row = $totalSemuaOutlet->firstWhere(
+            'stock_item_id',
+            $stockItemId
+        );
+
+        return $row->total_stok ?? 0;
+    }
 @endphp
 
 <div class="max-w-6xl mx-auto p-6">
 
-    {{-- ===================================================== --}}
-    {{-- HEADER --}}
-    {{-- ===================================================== --}}
-
     <div class="mb-6">
-
         <h1 class="text-2xl font-bold">
             Stok Bahan & Kemasan
         </h1>
 
         <p class="text-sm text-gray-500 mt-1">
-            Kelola stok bahan dan kemasan setiap outlet.
+            Kelola stok bahan, bagian ayam, dan kemasan setiap outlet.
         </p>
-
     </div>
 
-    {{-- ===================================================== --}}
-    {{-- SUCCESS ALERT --}}
-    {{-- ===================================================== --}}
-
     @if(session('success'))
-
-        <div
-            class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-5"
-        >
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-5">
             {{ session('success') }}
         </div>
-
     @endif
-
-    {{-- ===================================================== --}}
-    {{-- ERROR ALERT --}}
-    {{-- ===================================================== --}}
 
     @if(session('error'))
-
-        <div
-            class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-5"
-        >
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-5">
             {{ session('error') }}
         </div>
-
     @endif
 
-    {{-- ===================================================== --}}
-    {{-- VALIDATION ERROR --}}
-    {{-- ===================================================== --}}
-
     @if($errors->any())
-
-        <div
-            class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-5"
-        >
-
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-5">
             <ul class="list-disc list-inside">
-
                 @foreach($errors->all() as $error)
-
                     <li>
                         {{ $error }}
                     </li>
-
                 @endforeach
-
             </ul>
-
         </div>
-
     @endif
 
-    {{-- ===================================================== --}}
-    {{-- PILIH OUTLET ADMIN / SPV --}}
-    {{-- ===================================================== --}}
-
     @if(!$isOutlet)
-
         <form
             method="GET"
             action="{{ route('bahans.index') }}"
             class="mb-6"
         >
-
             <label class="block font-semibold mb-2">
                 Pilih Outlet
             </label>
@@ -174,38 +135,26 @@ function formatAngka($value)
                 onchange="this.form.submit()"
                 class="border border-gray-300 rounded-lg p-2 w-full md:w-1/2 bg-white"
             >
-
                 <option value="">
                     -- Total Semua Outlet --
                 </option>
 
                 @foreach($outlets as $outlet)
-
                     <option
                         value="{{ $outlet }}"
                         {{ ($selectedOutlet ?? '') == $outlet ? 'selected' : '' }}
                     >
                         {{ $outlet }}
                     </option>
-
                 @endforeach
-
             </select>
-
         </form>
-
     @endif
 
-    {{-- ===================================================== --}}
-    {{-- STOK OUTLET --}}
-    {{-- ===================================================== --}}
-
-    @if($selectedOutlet && $bahan)
+    @if($selectedOutlet)
 
         <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-
             <div class="px-5 py-4 border-b bg-gray-50">
-
                 <h2 class="text-xl font-semibold">
                     Stok Saat Ini
                 </h2>
@@ -213,17 +162,12 @@ function formatAngka($value)
                 <p class="text-sm text-gray-500 mt-1">
                     {{ $selectedOutlet }}
                 </p>
-
             </div>
 
             <div class="overflow-x-auto">
-
                 <table class="min-w-full border-collapse text-sm">
-
                     <thead class="bg-gray-100">
-
                         <tr>
-
                             <th class="border p-3 text-left">
                                 Item
                             </th>
@@ -231,78 +175,62 @@ function formatAngka($value)
                             <th class="border p-3 text-right">
                                 Jumlah
                             </th>
-
                         </tr>
-
                     </thead>
 
                     <tbody>
 
-                        @foreach($rows as $key => $label)
-
+                        @foreach($ayamStockItems as $ayam)
                             <tr class="hover:bg-gray-50">
+                                <td class="border p-3">
+                                    {{ $ayam->nama }}
+                                </td>
 
+                                <td class="border p-3 text-right font-semibold">
+                                    {{ formatAngka(
+                                        getStockOutletValue(
+                                            $ayam->id,
+                                            $stockOutletRows
+                                        )
+                                    ) }}
+                                </td>
+                            </tr>
+                        @endforeach
+
+                        @foreach($rows as $key => $label)
+                            <tr class="hover:bg-gray-50">
                                 <td class="border p-3">
                                     {{ $label }}
                                 </td>
 
                                 <td class="border p-3 text-right font-semibold">
-
                                     {{ formatAngka($bahan->$key ?? 0) }}
-
                                 </td>
-
                             </tr>
-
                         @endforeach
 
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
 
-    @elseif($selectedOutlet)
-
-        <div
-            class="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded-lg"
-        >
-            Data stok untuk {{ $selectedOutlet }} belum tersedia.
-        </div>
-
-    @endif
-
-    {{-- ===================================================== --}}
-    {{-- TOTAL SEMUA OUTLET --}}
-    {{-- ADMIN / SPV --}}
-    {{-- ===================================================== --}}
-
-    @if(!$isOutlet && !$selectedOutlet)
+    @elseif(!$isOutlet)
 
         <div class="border border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
-
             <div class="px-5 py-4 border-b bg-gray-100">
-
                 <h2 class="text-xl font-semibold">
                     Total Semua Outlet
                 </h2>
 
                 <p class="text-sm text-gray-500 mt-1">
-                    Total stok berdasarkan record terbaru setiap outlet.
+                    Total stok seluruh outlet.
                 </p>
-
             </div>
 
             <div class="overflow-x-auto">
-
                 <table class="min-w-full border-collapse text-sm">
-
                     <thead class="bg-gray-200">
-
                         <tr>
-
                             <th class="border p-3 text-left">
                                 Item
                             </th>
@@ -310,45 +238,46 @@ function formatAngka($value)
                             <th class="border p-3 text-right">
                                 Total
                             </th>
-
                         </tr>
-
                     </thead>
 
                     <tbody>
 
-                        @foreach($rows as $key => $label)
-
+                        @foreach($ayamStockItems as $ayam)
                             <tr class="hover:bg-gray-100">
+                                <td class="border p-3">
+                                    {{ $ayam->nama }}
+                                </td>
 
+                                <td class="border p-3 text-right font-semibold">
+                                    {{ formatAngka(
+                                        getStockTotalValue(
+                                            $ayam->id,
+                                            $totalSemuaOutlet
+                                        )
+                                    ) }}
+                                </td>
+                            </tr>
+                        @endforeach
+
+                        @foreach($rows as $key => $label)
+                            <tr class="hover:bg-gray-100">
                                 <td class="border p-3">
                                     {{ $label }}
                                 </td>
 
                                 <td class="border p-3 text-right font-semibold">
-
                                     {{ formatAngka($totalStok->$key ?? 0) }}
-
                                 </td>
-
                             </tr>
-
                         @endforeach
 
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
 
     @endif
-
-    {{-- ===================================================== --}}
-    {{-- FORM UPDATE --}}
-    {{-- ADMIN / SPV ONLY --}}
-    {{-- ===================================================== --}}
 
     @if(!$isOutlet && $selectedOutlet)
 
@@ -361,8 +290,7 @@ function formatAngka($value)
             </h2>
 
             <p class="text-sm text-gray-500 mb-5">
-                Masukkan jumlah tambahan stok. Nilai yang dimasukkan akan
-                ditambahkan ke stok terakhir {{ $selectedOutlet }}.
+                Masukkan jumlah tambahan stok untuk {{ $selectedOutlet }}.
             </p>
 
             <form
@@ -370,7 +298,6 @@ function formatAngka($value)
                 action="{{ route('bahans.store') }}"
                 method="POST"
             >
-
                 @csrf
 
                 <input
@@ -379,33 +306,76 @@ function formatAngka($value)
                     value="{{ $selectedOutlet }}"
                 >
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="mb-6">
 
-                    @foreach($rows as $key => $label)
+                    <h3 class="text-lg font-semibold mb-3">
+                        Bagian Ayam
+                    </h3>
 
-                        <div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                            <label
-                                for="stok_{{ $key }}"
-                                class="block mb-1 font-medium"
-                            >
-                                {{ $label }}
-                            </label>
+                        @foreach($ayamStockItems as $ayam)
 
-                            <input
-                                id="stok_{{ $key }}"
-                                type="text"
-                                name="{{ $key }}"
-                                inputmode="decimal"
-                                autocomplete="off"
-                                placeholder="Masukkan jumlah"
-                                class="stok-input w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
+                            <div>
+                                <label
+                                    for="stock_item_{{ $ayam->id }}"
+                                    class="block mb-1 font-medium"
+                                >
+                                    {{ $ayam->nama }}
+                                </label>
 
-                        </div>
+                                <input
+                                    id="stock_item_{{ $ayam->id }}"
+                                    type="number"
+                                    name="stock_item_{{ $ayam->id }}"
+                                    min="0"
+                                    step="0.01"
+                                    inputmode="decimal"
+                                    autocomplete="off"
+                                    placeholder="Masukkan jumlah"
+                                    class="stok-input w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                            </div>
 
-                    @endforeach
+                        @endforeach
 
+                    </div>
+                </div>
+
+                <div class="mb-6">
+
+                    <h3 class="text-lg font-semibold mb-3">
+                        Bahan & Kemasan
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        @foreach($rows as $key => $label)
+
+                            <div>
+                                <label
+                                    for="stok_{{ $key }}"
+                                    class="block mb-1 font-medium"
+                                >
+                                    {{ $label }}
+                                </label>
+
+                                <input
+                                    id="stok_{{ $key }}"
+                                    type="number"
+                                    name="{{ $key }}"
+                                    min="0"
+                                    step="0.01"
+                                    inputmode="decimal"
+                                    autocomplete="off"
+                                    placeholder="Masukkan jumlah"
+                                    class="stok-input w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                            </div>
+
+                        @endforeach
+
+                    </div>
                 </div>
 
                 <div class="mt-5 flex items-center gap-3">
@@ -436,27 +406,20 @@ function formatAngka($value)
 </div>
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function () {
-
     document.querySelectorAll('.stok-form').forEach(function (form) {
 
         const inputs = form.querySelectorAll('.stok-input');
-
         const button = form.querySelector('.btn-submit');
-
         const resetButton = form.querySelector('.btn-reset');
 
         function cekButton() {
-
             let aktif = false;
 
             inputs.forEach(function (input) {
-
-                if (input.value.trim() !== '') {
+                if (input.value.trim() !== '' && parseFloat(input.value) > 0) {
                     aktif = true;
                 }
-
             });
 
             button.disabled = !aktif;
@@ -485,40 +448,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 'cursor-pointer',
                 aktif
             );
-
         }
 
         inputs.forEach(function (input) {
-
             input.addEventListener(
                 'input',
                 cekButton
             );
 
+            input.addEventListener(
+                'change',
+                cekButton
+            );
         });
 
         if (resetButton) {
-
             resetButton.addEventListener(
                 'click',
                 function () {
-
                     setTimeout(
                         cekButton,
                         0
                     );
-
                 }
             );
-
         }
 
         cekButton();
-
     });
-
 });
-
 </script>
 
 @endsection

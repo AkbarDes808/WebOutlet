@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\DB;
 
 class BahanController extends Controller
 {
-    /**
-     * Semua kolom stok yang tersedia di tabel bahans.
-     */
     private array $rows = [
         'tepung_roti',
         'tepung_bumbu',
@@ -37,9 +34,6 @@ class BahanController extends Controller
         'plastik_jumbo',
     ];
 
-    /**
-     * Label yang ditampilkan di History.
-     */
     private array $historyLabels = [
         'tepung_roti' => 'Tepung Roti',
         'tepung_bumbu' => 'Tepung Bumbu',
@@ -66,12 +60,6 @@ class BahanController extends Controller
         'plastik_jumbo' => 'Plastik Jumbo',
     ];
 
-    /**
-     * Mapping field Bahan ke stock_items.
-     *
-     * Hanya item yang memang sudah menjadi stock item POS
-     * yang disinkronkan ke stock_item_outlets.
-     */
     private array $stockItemMapping = [
         'ayam' => 12,
         'tepung' => 10,
@@ -81,9 +69,6 @@ class BahanController extends Controller
         'bubuk_cabe' => 11,
     ];
 
-    /**
-     * Nama stock item.
-     */
     private array $stockItemNames = [
         5 => 'Teh Kotak',
         6 => 'Kotak',
@@ -95,9 +80,6 @@ class BahanController extends Controller
         12 => 'Ayam',
     ];
 
-    /**
-     * Mapping role outlet ke nama outlet di tabel bahans.
-     */
     private array $outletMapping = [
         'outlet 1' => 'Outlet 1',
         'outlet 2' => 'Outlet 2',
@@ -108,9 +90,6 @@ class BahanController extends Controller
         'outlet 7' => 'Outlet 7',
     ];
 
-    /**
-     * Daftar outlet.
-     */
     private array $outlets = [
         'outlet 1' => 'Outlet 1',
         'outlet 2' => 'Outlet 2',
@@ -121,77 +100,19 @@ class BahanController extends Controller
         'outlet 7' => 'Outlet 7',
     ];
 
-    /**
-     * Halaman inventory / input bahan.
-     */
     public function index(Request $request)
     {
         $user = auth()->user();
-
-        $role = strtolower(trim((string) ($user->role ?? '')));
+        $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
         $isSpv = $role === 'spv';
         $isAdminOrSpv = $isAdmin || $isSpv;
 
-        /*
-         * Admin dan SPV boleh memilih outlet.
-         * User outlet hanya boleh melihat outlet miliknya.
-         */
-        if ($isAdminOrSpv) {
-            $selectedOutlet = strtolower(
-                trim(
-                    (string) $request->input(
-                        'outlet',
-                        'outlet 1'
-                    )
-                )
-            );
-
-            if (!isset($this->outletMapping[$selectedOutlet])) {
-                $selectedOutlet = 'outlet 1';
-            }
-        } else {
-            if (!str_contains($role, 'outlet')) {
-                abort(403);
-            }
-
-            $selectedOutlet = $role;
-
-            if (!isset($this->outletMapping[$selectedOutlet])) {
-                abort(403);
-            }
-        }
+        $selectedOutlet = $this->resolveOutlet($request, $role, $isAdminOrSpv);
 
         $namaOutlet = $this->outletMapping[$selectedOutlet];
 
-        /*
-         * Ambil snapshot Bahan terakhir.
-         */
-        $bahan = Bahan::whereRaw(
-            'LOWER(TRIM(nama_outlet)) = ?',
-            [strtolower($namaOutlet)]
-        )
-            ->latest('id')
-            ->first();
-
-        /*
-         * Kalau belum ada snapshot, buat object kosong
-         * agar Blade tetap aman.
-         */
-        if (!$bahan) {
-            $bahan = new Bahan();
-
-            $bahan->nama_outlet = $namaOutlet;
-
-            foreach ($this->rows as $field) {
-                $bahan->{$field} = 0;
-            }
-        }
-
-        /*
-         * Ambil stok POS aktual dari stock_item_outlets.
-         */
         $stockItems = DB::table('stock_items')
             ->where('aktif', true)
             ->orderBy('id')
@@ -205,18 +126,32 @@ class BahanController extends Controller
             ->get()
             ->keyBy('stock_item_id');
 
-        /*
-         * Total stok POS per stock item.
-         */
         $totalStok = [];
 
         foreach ($stockItems as $stockItem) {
-            $totalStok[$stockItem->id] = isset(
-                $stockOutletRows[$stockItem->id]
-            )
+            $totalStok[$stockItem->id] = isset($stockOutletRows[$stockItem->id])
                 ? (float) $stockOutletRows[$stockItem->id]->stok
                 : 0;
         }
+
+        $allOutletStocks = DB::table('stock_item_outlets')
+            ->get()
+            ->groupBy('stock_item_id');
+
+        $totalSemuaOutlet = [];
+
+        foreach ($stockItems as $stockItem) {
+            $totalSemuaOutlet[$stockItem->id] = 0;
+
+            if (isset($allOutletStocks[$stockItem->id])) {
+                foreach ($allOutletStocks[$stockItem->id] as $row) {
+                    $totalSemuaOutlet[$stockItem->id] += (float) $row->stok;
+                }
+            }
+        }
+
+        $bahan = new Bahan();
+        $bahan->nama_outlet = $namaOutlet;
 
         return view('bahans.index', [
             'bahan' => $bahan,
@@ -229,28 +164,13 @@ class BahanController extends Controller
             'stockItems' => $stockItems,
             'stockOutletRows' => $stockOutletRows,
             'totalStok' => $totalStok,
+            'totalSemuaOutlet' => $totalSemuaOutlet,
         ]);
     }
 
-    /**
-     * Simpan penambahan stok.
-     *
-     * Prinsip:
-     *
-     * INPUT FORM = PENAMBAHAN
-     *
-     * Jadi:
-     *
-     * stok lama + input baru
-     *
-     * Tidak pernah mengosongkan / mereset field
-     * yang tidak diisi.
-     */
     public function store(Request $request)
     {
-        $user = auth()->user();
-
-        $role = strtolower(trim((string) ($user->role ?? '')));
+        $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
         $isSpv = $role === 'spv';
@@ -260,21 +180,12 @@ class BahanController extends Controller
             abort(403);
         }
 
-        /*
-         * Tentukan outlet.
-         */
         $requestedOutlet = strtolower(
             trim(
-                (string) $request->input(
-                    'nama_outlet',
-                    $role
-                )
+                (string) $request->input('nama_outlet', $role)
             )
         );
 
-        /*
-         * User outlet tidak boleh menginput ke outlet lain.
-         */
         if (!$isAdminOrSpv) {
             $requestedOutlet = $role;
         }
@@ -282,134 +193,49 @@ class BahanController extends Controller
         if (!isset($this->outletMapping[$requestedOutlet])) {
             return back()
                 ->withInput()
-                ->with(
-                    'error',
-                    'Outlet tidak valid.'
-                );
+                ->with('error', 'Outlet tidak valid.');
         }
 
         $namaOutlet = $this->outletMapping[$requestedOutlet];
 
-        /*
-         * Ambil semua input.
-         */
-        $data = [];
-
-        $adaInput = false;
-
-        foreach ($this->rows as $field) {
-            $value = $request->input($field);
-
-            /*
-             * Field kosong = tidak ada penambahan.
-             */
-            if (
-                $value === null ||
-                trim((string) $value) === ''
-            ) {
-                $data[$field] = 0;
-                continue;
-            }
-
-            /*
-             * Normalisasi angka.
-             */
-            $value = str_replace(',', '.', trim((string) $value));
-
-            if (!is_numeric($value)) {
-                return back()
-                    ->withInput()
-                    ->with(
-                        'error',
-                        'Nilai ' .
-                        $this->historyLabels[$field] .
-                        ' harus berupa angka.'
-                    );
-            }
-
-            $value = (float) $value;
-
-            /*
-             * Penambahan tidak boleh negatif.
-             */
-            if ($value < 0) {
-                return back()
-                    ->withInput()
-                    ->with(
-                        'error',
-                        'Nilai ' .
-                        $this->historyLabels[$field] .
-                        ' tidak boleh negatif.'
-                    );
-            }
-
-            if ($value > 0) {
-                $adaInput = true;
-            }
-
-            $data[$field] = $value;
-        }
-
-        if (!$adaInput) {
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    'Masukkan minimal satu jumlah stok.'
-                );
-        }
-
         try {
             DB::transaction(function () use (
-                $data,
-                $namaOutlet,
-                $requestedOutlet
+                $request,
+                $requestedOutlet,
+                $namaOutlet
             ) {
-                /*
-                 * Ambil snapshot terakhir.
-                 */
-                $latest = Bahan::whereRaw(
-                    'LOWER(TRIM(nama_outlet)) = ?',
-                    [strtolower($namaOutlet)]
-                )
-                    ->latest('id')
-                    ->lockForUpdate()
-                    ->first();
+                $legacyData = $this->prepareLegacyData($request);
 
-                $newValues = [];
+                $stockItemData = $this->prepareStockItemData(
+                    $request
+                );
 
-                foreach ($this->rows as $field) {
-                    $oldValue = $latest
-                        ? (float) ($latest->{$field} ?? 0)
-                        : 0;
-
-                    $inputValue = (float) ($data[$field] ?? 0);
-
-                    /*
-                     * INPUT = TAMBAHAN.
-                     */
-                    $newValues[$field] =
-                        $oldValue + $inputValue;
+                if (!$legacyData['has_input'] && !$stockItemData['has_input']) {
+                    throw new \RuntimeException(
+                        'Masukkan minimal satu jumlah stok.'
+                    );
                 }
 
-                $newValues['nama_outlet'] = $namaOutlet;
+                if ($legacyData['has_input']) {
+                    $this->storeLegacyBahan(
+                        $legacyData['data'],
+                        $namaOutlet
+                    );
+                }
 
-                /*
-                 * Simpan snapshot baru.
-                 *
-                 * Model Bahan sudah memiliki semua field
-                 * di $fillable.
-                 */
-                Bahan::create($newValues);
+                if ($stockItemData['has_input']) {
+                    $this->syncDirectStockItems(
+                        $stockItemData['data'],
+                        $requestedOutlet
+                    );
+                }
 
-                /*
-                 * Sinkronkan hanya field yang memang
-                 * mempunyai stock item POS.
-                 */
-                $this->syncStockItems(
-                    $requestedOutlet,
-                    $data
-                );
+                if ($legacyData['has_input']) {
+                    $this->syncStockItems(
+                        $requestedOutlet,
+                        $legacyData['data']
+                    );
+                }
             });
 
             return redirect()
@@ -428,26 +254,203 @@ class BahanController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Gagal menyimpan stok: ' .
-                    $e->getMessage()
+                    'Gagal menyimpan stok: ' . $e->getMessage()
                 );
         }
     }
 
-    /**
-     * Sinkronisasi Bahan ke stock_item_outlets.
-     *
-     * Hanya:
-     *
-     * ayam
-     * tepung
-     * teh
-     * beras
-     * cup
-     * bubuk_cabe
-     *
-     * yang disinkronkan ke stok POS.
-     */
+    private function prepareLegacyData(Request $request): array
+    {
+        $data = [];
+        $hasInput = false;
+
+        foreach ($this->rows as $field) {
+            $value = $request->input($field);
+
+            if ($value === null || trim((string) $value) === '') {
+                $data[$field] = 0;
+                continue;
+            }
+
+            $value = str_replace(
+                ',',
+                '.',
+                trim((string) $value)
+            );
+
+            if (!is_numeric($value)) {
+                throw new \RuntimeException(
+                    'Nilai ' .
+                    ($this->historyLabels[$field] ?? $field) .
+                    ' harus berupa angka.'
+                );
+            }
+
+            $value = (float) $value;
+
+            if ($value < 0) {
+                throw new \RuntimeException(
+                    'Nilai ' .
+                    ($this->historyLabels[$field] ?? $field) .
+                    ' tidak boleh negatif.'
+                );
+            }
+
+            if ($value > 0) {
+                $hasInput = true;
+            }
+
+            $data[$field] = $value;
+        }
+
+        return [
+            'data' => $data,
+            'has_input' => $hasInput,
+        ];
+    }
+
+    private function prepareStockItemData(Request $request): array
+    {
+        $data = [];
+        $hasInput = false;
+
+        $stockItems = DB::table('stock_items')
+            ->where('aktif', true)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($stockItems as $stockItem) {
+            $field = 'stock_item_' . $stockItem->id;
+
+            if (!$request->has($field)) {
+                continue;
+            }
+
+            $value = $request->input($field);
+
+            if ($value === null || trim((string) $value) === '') {
+                continue;
+            }
+
+            $value = str_replace(
+                ',',
+                '.',
+                trim((string) $value)
+            );
+
+            if (!is_numeric($value)) {
+                throw new \RuntimeException(
+                    'Nilai ' .
+                    $stockItem->nama .
+                    ' harus berupa angka.'
+                );
+            }
+
+            $value = (float) $value;
+
+            if ($value < 0) {
+                throw new \RuntimeException(
+                    'Nilai ' .
+                    $stockItem->nama .
+                    ' tidak boleh negatif.'
+                );
+            }
+
+            if ($value > 0) {
+                $hasInput = true;
+            }
+
+            $data[$stockItem->id] = $value;
+        }
+
+        return [
+            'data' => $data,
+            'has_input' => $hasInput,
+        ];
+    }
+
+    private function storeLegacyBahan(
+        array $data,
+        string $namaOutlet
+    ): void {
+        $latest = Bahan::whereRaw(
+            'LOWER(TRIM(nama_outlet)) = ?',
+            [strtolower($namaOutlet)]
+        )
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        $newValues = [];
+
+        foreach ($this->rows as $field) {
+            $oldValue = $latest
+                ? (float) ($latest->{$field} ?? 0)
+                : 0;
+
+            $inputValue = (float) ($data[$field] ?? 0);
+
+            $newValues[$field] = $oldValue + $inputValue;
+        }
+
+        $newValues['nama_outlet'] = $namaOutlet;
+
+        Bahan::create($newValues);
+    }
+
+    private function syncDirectStockItems(
+        array $data,
+        string $requestedOutlet
+    ): void {
+        foreach ($data as $stockItemId => $jumlah) {
+            if ($jumlah <= 0) {
+                continue;
+            }
+
+            $stockItem = DB::table('stock_items')
+                ->where('id', $stockItemId)
+                ->where('aktif', true)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$stockItem) {
+                throw new \RuntimeException(
+                    'Stock item ID ' .
+                    $stockItemId .
+                    ' tidak ditemukan atau tidak aktif.'
+                );
+            }
+
+            $stockOutlet = DB::table('stock_item_outlets')
+                ->where('stock_item_id', $stockItemId)
+                ->whereRaw(
+                    'LOWER(TRIM(outlet)) = ?',
+                    [$requestedOutlet]
+                )
+                ->lockForUpdate()
+                ->first();
+
+            if (!$stockOutlet) {
+                DB::table('stock_item_outlets')->insert([
+                    'stock_item_id' => $stockItemId,
+                    'outlet' => $requestedOutlet,
+                    'stok' => $jumlah,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                continue;
+            }
+
+            DB::table('stock_item_outlets')
+                ->where('id', $stockOutlet->id)
+                ->update([
+                    'stok' => (float) $stockOutlet->stok + $jumlah,
+                    'updated_at' => now(),
+                ]);
+        }
+    }
+
     private function syncStockItems(
         string $requestedOutlet,
         array $data
@@ -455,19 +458,14 @@ class BahanController extends Controller
         foreach ($this->stockItemMapping as $field => $stockItemId) {
             $jumlah = (float) ($data[$field] ?? 0);
 
-            /*
-             * Tidak ada input = jangan lakukan apa-apa.
-             */
             if ($jumlah <= 0) {
                 continue;
             }
 
-            /*
-             * Pastikan stock item aktif.
-             */
             $stockItem = DB::table('stock_items')
                 ->where('id', $stockItemId)
                 ->where('aktif', true)
+                ->lockForUpdate()
                 ->first();
 
             if (!$stockItem) {
@@ -479,14 +477,8 @@ class BahanController extends Controller
                 );
             }
 
-            /*
-             * Cari stok outlet.
-             */
             $stockOutlet = DB::table('stock_item_outlets')
-                ->where(
-                    'stock_item_id',
-                    $stockItemId
-                )
+                ->where('stock_item_id', $stockItemId)
                 ->whereRaw(
                     'LOWER(TRIM(outlet)) = ?',
                     [$requestedOutlet]
@@ -494,57 +486,30 @@ class BahanController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            /*
-             * Kalau mapping belum ada, buat.
-             */
             if (!$stockOutlet) {
-                DB::table('stock_item_outlets')
-                    ->insert([
-                        'stock_item_id' => $stockItemId,
-                        'outlet' => $requestedOutlet,
-                        'stok' => $jumlah,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                DB::table('stock_item_outlets')->insert([
+                    'stock_item_id' => $stockItemId,
+                    'outlet' => $requestedOutlet,
+                    'stok' => $jumlah,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
                 continue;
             }
 
-            /*
-             * Kalau sudah ada, TAMBAHKAN.
-             */
-            $stokLama = (float) $stockOutlet->stok;
-
-            $stokBaru = $stokLama + $jumlah;
-
             DB::table('stock_item_outlets')
                 ->where('id', $stockOutlet->id)
                 ->update([
-                    'stok' => $stokBaru,
+                    'stok' => (float) $stockOutlet->stok + $jumlah,
                     'updated_at' => now(),
                 ]);
         }
     }
 
-    /**
-     * History stok.
-     *
-     * Sumber:
-     *
-     * 1. bahans
-     *    -> penambahan stok
-     *
-     * 2. stock_deductions
-     *    -> pemakaian akibat transaksi
-     *
-     * Pengurangan dari transaksi TIDAK dianggap
-     * sebagai penambahan.
-     */
     public function history(Request $request)
     {
-        $user = auth()->user();
-
-        $role = strtolower(trim((string) ($user->role ?? '')));
+        $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
         $isSpv = $role === 'spv';
@@ -554,40 +519,14 @@ class BahanController extends Controller
             abort(403);
         }
 
-        /*
-         * Tentukan outlet.
-         */
-        if ($isAdminOrSpv) {
-            $selectedOutlet = strtolower(
-                trim(
-                    (string) $request->input(
-                        'outlet',
-                        'outlet 1'
-                    )
-                )
-            );
-
-            if (!isset($this->outletMapping[$selectedOutlet])) {
-                $selectedOutlet = 'outlet 1';
-            }
-        } else {
-            $selectedOutlet = $role;
-
-            if (!isset($this->outletMapping[$selectedOutlet])) {
-                abort(403);
-            }
-        }
+        $selectedOutlet = $this->resolveOutlet(
+            $request,
+            $role,
+            $isAdminOrSpv
+        );
 
         $namaOutlet = $this->outletMapping[$selectedOutlet];
 
-        /*
-         * ==========================================================
-         * PENAMBAHAN DARI BAHANS
-         * ==========================================================
-         *
-         * Ambil semua snapshot Bahan secara ASC agar
-         * perubahan bisa dibandingkan dengan snapshot sebelumnya.
-         */
         $bahanHistory = Bahan::whereRaw(
             'LOWER(TRIM(nama_outlet)) = ?',
             [strtolower($namaOutlet)]
@@ -596,7 +535,6 @@ class BahanController extends Controller
             ->get();
 
         $penambahanHistory = [];
-
         $previous = null;
 
         foreach ($bahanHistory as $current) {
@@ -607,12 +545,6 @@ class BahanController extends Controller
                     $current->{$field} ?? 0
                 );
 
-                /*
-                 * Snapshot pertama.
-                 *
-                 * Kalau tidak ada snapshot sebelumnya,
-                 * nilai positif dianggap stok awal/input.
-                 */
                 if ($previous === null) {
                     $change = $currentValue;
                 } else {
@@ -620,21 +552,9 @@ class BahanController extends Controller
                         $previous->{$field} ?? 0
                     );
 
-                    $change =
-                        $currentValue -
-                        $previousValue;
+                    $change = $currentValue - $previousValue;
                 }
 
-                /*
-                 * PENTING:
-                 *
-                 * Hanya perubahan POSITIF yang dianggap
-                 * Penambahan.
-                 *
-                 * Kalau negatif, kemungkinan berasal dari
-                 * pengurangan / perubahan snapshot dan tidak
-                 * ditampilkan sebagai Penambahan.
-                 */
                 if ($change <= 0) {
                     continue;
                 }
@@ -648,10 +568,6 @@ class BahanController extends Controller
                 ];
             }
 
-            /*
-             * Hanya buat history jika memang ada
-             * penambahan.
-             */
             if (!empty($items)) {
                 $penambahanHistory[] = [
                     'id' => $current->id,
@@ -667,15 +583,6 @@ class BahanController extends Controller
             $previous = $current;
         }
 
-        /*
-         * ==========================================================
-         * PEMAKAIAN DARI TRANSAKSI
-         * ==========================================================
-         *
-         * Ambil stock_deductions.
-         *
-         * Jumlah dibuat negatif ketika ditampilkan.
-         */
         $deductions = DB::table('stock_deductions as sd')
             ->join(
                 'stock_items as si',
@@ -706,9 +613,6 @@ class BahanController extends Controller
             ->orderBy('sd.created_at', 'desc')
             ->get();
 
-        /*
-         * Kelompokkan pemakaian berdasarkan transaksi.
-         */
         $penggunaanHistory = [];
 
         foreach ($deductions as $deduction) {
@@ -736,35 +640,23 @@ class BahanController extends Controller
             ];
         }
 
-        /*
-         * Gabungkan Penambahan + Penggunaan.
-         */
         $history = array_merge(
             $penambahanHistory,
             array_values($penggunaanHistory)
         );
 
-        /*
-         * Urutkan terbaru di atas.
-         */
-        usort(
-            $history,
-            function ($a, $b) {
-                $timeA = strtotime(
-                    (string) $a['created_at']
-                );
+        usort($history, function ($a, $b) {
+            $timeA = strtotime(
+                (string) $a['created_at']
+            );
 
-                $timeB = strtotime(
-                    (string) $b['created_at']
-                );
+            $timeB = strtotime(
+                (string) $b['created_at']
+            );
 
-                return $timeB <=> $timeA;
-            }
-        );
+            return $timeB <=> $timeA;
+        });
 
-        /*
-         * Ambil stok POS aktual untuk informasi tambahan.
-         */
         $stockItems = DB::table('stock_items')
             ->where('aktif', true)
             ->orderBy('id')
@@ -802,9 +694,48 @@ class BahanController extends Controller
         ]);
     }
 
-    /**
-     * Format angka untuk kebutuhan internal.
-     */
+    private function getUserRole(): string
+    {
+        return strtolower(
+            trim(
+                (string) (auth()->user()->role ?? '')
+            )
+        );
+    }
+
+    private function resolveOutlet(
+        Request $request,
+        string $role,
+        bool $isAdminOrSpv
+    ): string {
+        if ($isAdminOrSpv) {
+            $selectedOutlet = strtolower(
+                trim(
+                    (string) $request->input(
+                        'outlet',
+                        'outlet 1'
+                    )
+                )
+            );
+
+            if (!isset($this->outletMapping[$selectedOutlet])) {
+                $selectedOutlet = 'outlet 1';
+            }
+
+            return $selectedOutlet;
+        }
+
+        if (!str_contains($role, 'outlet')) {
+            abort(403);
+        }
+
+        if (!isset($this->outletMapping[$role])) {
+            abort(403);
+        }
+
+        return $role;
+    }
+
     private function formatNumber(float $number): string
     {
         if (floor($number) == $number) {
