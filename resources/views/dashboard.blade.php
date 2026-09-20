@@ -3,88 +3,85 @@
 @section('content')
 
 @php
-    /*
-    |--------------------------------------------------------------------------
-    | FORMAT ANGKA INDONESIA
-    |--------------------------------------------------------------------------
-    | 12.5   -> 12,5
-    | 12.00  -> 12
-    | 1250.5 -> 1.250,5
-    */
     function formatAngka($value)
     {
-        if ($value === null) {
+        if ($value === null || $value === '') {
             return '0';
         }
 
         $angka = (float) $value;
-        $formatted = number_format($angka, 2, ',', '.');
 
-        return rtrim(rtrim($formatted, '0'), ',');
+        return rtrim(
+            rtrim(
+                number_format($angka, 2, ',', '.'),
+                '0'
+            ),
+            ','
+        );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | USER & ROLE
-    |--------------------------------------------------------------------------
-    */
     $user = Auth::user();
-
     $role = strtolower(trim($user->role ?? ''));
 
     $isAdmin = $role === 'admin';
     $isSpv = $role === 'spv';
     $isOutletUser = str_contains($role, 'outlet');
 
-    /*
-    |--------------------------------------------------------------------------
-    | OUTLET AKTIF
-    |--------------------------------------------------------------------------
-    */
     $selectedOutlet = $selectedOutlet ?? request('outlet');
-
     $displayOutlet = $selectedOutlet ?: 'Semua Outlet';
 
-    /*
-    |--------------------------------------------------------------------------
-    | FIELD INVENTORY
-    |--------------------------------------------------------------------------
-    */
-    $fields = [
-        // Bahan lama
-        'tepung_roti' => 'Tepung Roti',
-        'tepung_bumbu' => 'Tepung Bumbu',
-        'garam' => 'Garam',
-        'bubuk_cabe' => 'Bubuk Cabe',
-        'telur' => 'Telur',
-        'gula' => 'Gula',
-        'ayam' => 'Ayam',
+    $chickenNames = [
+        'ayam - sayap',
+        'ayam - paha bawah',
+        'ayam - dada',
+        'ayam - paha atas',
+    ];
 
-        // Bahan & kemasan baru
+    $otherItems = [
+        'garam' => 'Garam',
         'tepung' => 'Tepung',
         'teh' => 'Teh',
         'beras' => 'Beras',
-        'cup' => 'Cup',
-        'kertas_chicken_kecil' => 'Kertas Chicken Kecil',
-        'kertas_chicken_sedang' => 'Kertas Chicken Sedang',
-        'kertas_chicken_besar' => 'Kertas Chicken Besar',
+        'plastik_sedang' => 'Plastik Sedang',
         'dus_chicken' => 'Dus Chicken',
         'dus_chicken_jumbo' => 'Dus Chicken Jumbo',
-        'plastik_cup_isi_1' => 'Plastik Cup Isi 1',
-        'plastik_cup_isi_2' => 'Plastik Cup Isi 2',
-        'plastik_ayam_kecil' => 'Plastik Ayam Kecil',
-        'plastik_sedang' => 'Plastik Sedang',
-        'plastik_tanggung' => 'Plastik Tanggung',
-        'plastik_besar' => 'Plastik Besar',
-        'plastik_jumbo' => 'Plastik Jumbo',
     ];
+
+    $chickenStockItems = collect();
+
+    if (isset($stockItems)) {
+        $chickenStockItems = collect($stockItems)
+            ->filter(function ($stockItem) use ($chickenNames) {
+                return in_array(
+                    strtolower(trim($stockItem->nama ?? '')),
+                    $chickenNames,
+                    true
+                );
+            })
+            ->sortBy(function ($stockItem) use ($chickenNames) {
+                return array_search(
+                    strtolower(trim($stockItem->nama ?? '')),
+                    $chickenNames
+                );
+            })
+            ->values();
+    }
+
+    $getStock = function ($id) use ($totalStok) {
+        if (is_array($totalStok ?? null)) {
+            return $totalStok[$id] ?? 0;
+        }
+
+        if (is_object($totalStok ?? null)) {
+            return $totalStok->{$id} ?? 0;
+        }
+
+        return 0;
+    };
 @endphp
 
 <div>
 
-    {{-- =========================================================
-         BANNER
-         ========================================================= --}}
     <div class="w-full h-52">
         <img
             src="https://picsum.photos/1600/900"
@@ -95,19 +92,12 @@
 
     <div class="p-4 sm:p-8">
 
-        {{-- =====================================================
-             WELCOME
-             ===================================================== --}}
         <h1 class="text-2xl font-semibold mb-6">
             Welcome back, {{ $user->name ?? 'User' }}!
         </h1>
 
-        {{-- =====================================================
-             MENU KARTU
-             ===================================================== --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
-            {{-- INVENTORY --}}
             <a
                 href="{{ route('bahans.index') }}"
                 class="p-6 bg-white shadow rounded-xl hover:shadow-md transition"
@@ -125,7 +115,6 @@
                 </p>
             </a>
 
-            {{-- MARINASI --}}
             @if($isAdmin)
                 <a
                     href="{{ route('marinasi.index') }}"
@@ -145,7 +134,6 @@
                 </a>
             @endif
 
-            {{-- HISTORY --}}
             <a
                 href="{{ route('bahans.history') }}"
                 class="p-6 bg-white shadow rounded-xl hover:shadow-md transition"
@@ -163,7 +151,6 @@
                 </p>
             </a>
 
-            {{-- OUTLETS --}}
             @if(!$isOutletUser)
                 <a
                     href="{{ route('outlets.index') }}"
@@ -185,12 +172,8 @@
 
         </div>
 
-        {{-- =====================================================
-             INVENTORY TABLE
-             ===================================================== --}}
         <div class="p-4 sm:p-6 bg-white rounded-xl shadow">
 
-            {{-- HEADER --}}
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
 
                 <div>
@@ -203,7 +186,6 @@
                     </p>
                 </div>
 
-                {{-- INFORMASI OUTLET USER --}}
                 @if($isOutletUser)
                     <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm">
                         <span>
@@ -218,9 +200,6 @@
 
             </div>
 
-            {{-- =================================================
-                 FILTER OUTLET
-                 ================================================= --}}
             @if(!$isOutletUser)
 
                 <div class="bg-gray-50 p-4 rounded-lg border mb-6">
@@ -231,7 +210,6 @@
                         class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
                     >
 
-                        {{-- OUTLET --}}
                         <div class="md:col-span-3">
 
                             <label
@@ -246,27 +224,23 @@
                                 name="outlet"
                                 class="w-full border-gray-300 rounded-lg focus:ring-gray-500 focus:border-gray-500"
                             >
-
                                 <option value="">
                                     Semua Outlet
                                 </option>
 
                                 @foreach($outlets ?? [] as $outlet)
-
                                     <option
                                         value="{{ $outlet }}"
                                         {{ request('outlet') == $outlet ? 'selected' : '' }}
                                     >
                                         {{ $outlet }}
                                     </option>
-
                                 @endforeach
 
                             </select>
 
                         </div>
 
-                        {{-- BUTTON FILTER --}}
                         <div>
 
                             <button
@@ -284,9 +258,6 @@
 
             @endif
 
-            {{-- =================================================
-                 INFO OUTLET AKTIF
-                 ================================================= --}}
             <div class="mb-4">
 
                 <div class="flex items-center justify-between">
@@ -303,9 +274,6 @@
 
             </div>
 
-            {{-- =================================================
-                 TABLE
-                 ================================================= --}}
             <div class="overflow-x-auto">
 
                 <table class="min-w-full text-sm text-left">
@@ -318,8 +286,12 @@
                                 Bahan
                             </th>
 
+                            <th class="px-4 py-3">
+                                Satuan
+                            </th>
+
                             <th class="px-4 py-3 text-right">
-                                Total Stok
+                                Sisa Stok
                             </th>
 
                         </tr>
@@ -328,32 +300,79 @@
 
                     <tbody class="divide-y">
 
-                        @if(isset($totalStok))
+                        @if($chickenStockItems->count() > 0)
 
-                            @foreach($fields as $key => $label)
+                            @foreach($chickenStockItems as $chicken)
 
                                 <tr class="hover:bg-gray-50">
 
-                                    {{-- NAMA BAHAN --}}
                                     <td class="px-4 py-3 font-medium">
-                                        {{ $label }}
+                                        {{ $chicken->nama }}
                                     </td>
 
-                                    {{-- TOTAL STOK --}}
+                                    <td class="px-4 py-3 text-gray-500">
+                                        {{ $chicken->satuan ?? 'pcs' }}
+                                    </td>
+
                                     <td class="px-4 py-3 text-right font-semibold">
-                                        {{ formatAngka($totalStok->{$key} ?? 0) }}
+                                        {{ formatAngka($getStock($chicken->id)) }}
                                     </td>
 
                                 </tr>
 
                             @endforeach
 
-                        @else
+                        @endif
+
+                        @foreach($otherItems as $key => $label)
+
+                            @php
+                                $stok = 0;
+
+                                if (isset($totalStok)) {
+                                    if (is_array($totalStok)) {
+                                        $stok = $totalStok[$key] ?? 0;
+                                    } elseif (is_object($totalStok)) {
+                                        $stok = $totalStok->{$key} ?? 0;
+                                    }
+                                }
+
+                                $satuan = match ($key) {
+                                    'garam' => 'gram',
+                                    'tepung' => 'gram',
+                                    'teh' => 'kotak',
+                                    'beras' => 'porsi',
+                                    'plastik_sedang' => 'pcs',
+                                    'dus_chicken' => 'pcs',
+                                    'dus_chicken_jumbo' => 'pcs',
+                                    default => '-',
+                                };
+                            @endphp
+
+                            <tr class="hover:bg-gray-50">
+
+                                <td class="px-4 py-3 font-medium">
+                                    {{ $label }}
+                                </td>
+
+                                <td class="px-4 py-3 text-gray-500">
+                                    {{ $satuan }}
+                                </td>
+
+                                <td class="px-4 py-3 text-right font-semibold">
+                                    {{ formatAngka($stok) }}
+                                </td>
+
+                            </tr>
+
+                        @endforeach
+
+                        @if($chickenStockItems->count() === 0 && count($otherItems) === 0)
 
                             <tr>
 
                                 <td
-                                    colspan="2"
+                                    colspan="3"
                                     class="p-4 text-center text-gray-500"
                                 >
                                     Tidak ada data stok.
