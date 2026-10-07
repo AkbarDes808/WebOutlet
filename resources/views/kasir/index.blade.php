@@ -111,14 +111,14 @@
 
                         @for($i = 1; $i <= 7; $i++)
                             @php
-                                $outletName = 'Outlet ' . $i;
+                                $outletValue = 'Outlet ' . $i;
                             @endphp
 
                             <option
-                                value="{{ $outletName }}"
-                                {{ $transactionOutlet == $outletName ? 'selected' : '' }}
+                                value="{{ $outletValue }}"
+                                {{ $transactionOutlet == $outletValue ? 'selected' : '' }}
                             >
-                                {{ $outletNames[$outletName] ?? $outletName }}
+                                {{ $outletNames[$outletValue] }}
                             </option>
                         @endfor
                     </select>
