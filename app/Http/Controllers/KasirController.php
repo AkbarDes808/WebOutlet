@@ -20,9 +20,21 @@ class KasirController extends Controller
             ->exists();
 
         $menus = Menu::where('is_active', true)
+            ->orderByRaw("
+                CASE
+                    WHEN category = 'Menu Utama' THEN 1
+                    WHEN category = 'Menu Tambahan' THEN 2
+                    WHEN category = 'Menu Gratis' THEN 3
+                    ELSE 4
+                END
+            ")
             ->orderBy('name')
+            ->orderBy('price')
             ->get();
 
-        return view('kasir.index', compact('menus', 'shiftClosed'));
+        return view('kasir.index', compact(
+            'menus',
+            'shiftClosed'
+        ));
     }
 }

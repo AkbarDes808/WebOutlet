@@ -120,10 +120,16 @@ class StockService
                 );
             }
 
+            $menuPrice = (int) ($item['price'] ?? 0);
+
             $menu = Menu::where(
                 'name',
                 $menuName
             )
+                ->where(
+                    'price',
+                    $menuPrice
+                )
                 ->where(
                     'is_active',
                     true

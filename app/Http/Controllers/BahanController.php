@@ -11,7 +11,6 @@ class BahanController extends Controller
     private array $rows = [
         'tepung_roti',
         'tepung_bumbu',
-        'garam',
         'bubuk_cabe',
         'telur',
         'gula',
@@ -24,7 +23,6 @@ class BahanController extends Controller
         'kertas_chicken_sedang',
         'kertas_chicken_besar',
         'dus_chicken',
-        'dus_chicken_jumbo',
         'plastik_cup_isi_1',
         'plastik_cup_isi_2',
         'plastik_ayam_kecil',

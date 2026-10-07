@@ -38,13 +38,11 @@
     ];
 
     $otherItems = [
-        'garam' => 'Garam',
         'tepung' => 'Tepung',
         'teh' => 'Teh',
         'beras' => 'Beras',
         'plastik_sedang' => 'Plastik Sedang',
         'dus_chicken' => 'Dus Chicken',
-        'dus_chicken_jumbo' => 'Dus Chicken Jumbo',
     ];
 
     $chickenStockItems = collect();

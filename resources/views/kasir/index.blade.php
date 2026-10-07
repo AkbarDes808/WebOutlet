@@ -216,50 +216,80 @@
          PRODUK
          ===================================================== --}}
 
-    <div class="w-1/2 lg:flex-1 space-y-2">
+<div class="w-1/2 lg:flex-1 space-y-4">
 
-        @forelse($menus as $menu)
+    @php
+        $menuGroups = $menus->groupBy(function ($menu) {
+            return $menu->category ?: 'Menu Utama';
+        });
 
-            <div class="bg-white rounded-lg shadow-sm p-3 flex justify-between items-center">
+        $categoryOrder = [
+            'Menu Utama',
+            'Menu Tambahan',
+            'Menu Gratis',
+        ];
+    @endphp
 
-                <div>
+    @forelse($categoryOrder as $category)
 
-                    <div class="font-semibold text-sm">
-                        {{ $menu->name }}
-                    </div>
+        @if(isset($menuGroups[$category]) && $menuGroups[$category]->isNotEmpty())
 
-                    <div class="text-xs text-blue-600 font-semibold">
-                        Rp {{ number_format($menu->price, 0, ',', '.') }}
-                    </div>
+            <div>
 
-                    <div class="text-xs text-gray-400">
-                        Stok: {{ $menu->stock ?? '-' }}
-                    </div>
+                <div class="mb-2 px-1">
+                    <h2 class="text-sm font-bold text-gray-700">
+                        {{ $category }}
+                    </h2>
+                </div>
+
+                <div class="space-y-2">
+
+                    @foreach($menuGroups[$category] as $menu)
+
+                        <div class="bg-white rounded-lg shadow-sm p-3 flex justify-between items-center">
+
+                            <div>
+
+                                <div class="font-semibold text-sm">
+                                    {{ $menu->name }}
+                                </div>
+
+                                <div class="text-xs text-blue-600 font-semibold">
+                                    Rp {{ number_format($menu->price, 0, ',', '.') }}
+                                </div>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="btn-add text-white text-sm w-9 h-9 rounded-lg flex items-center justify-center"
+                                style="background:#3b82f6;"
+                                data-id="{{ $menu->id }}"
+                                data-name="{{ $menu->name }}"
+                                data-price="{{ $menu->price }}"
+                            >
+                                +
+                            </button>
+
+                        </div>
+
+                    @endforeach
 
                 </div>
 
-                <button
-                    type="button"
-                    class="btn-add text-white text-sm w-9 h-9 rounded-lg flex items-center justify-center"
-                    style="background:#3b82f6;"
-                    data-id="{{ $menu->id }}"
-                    data-name="{{ $menu->name }}"
-                    data-price="{{ $menu->price }}"
-                >
-                    +
-                </button>
-
             </div>
 
-        @empty
+        @endif
 
-            <div class="text-center text-gray-500 text-sm">
-                Belum ada menu
-            </div>
+    @empty
 
-        @endforelse
+        <div class="text-center text-gray-500 text-sm">
+            Belum ada menu
+        </div>
 
-    </div>
+    @endforelse
+
+</div>
 
 
     {{-- =====================================================
