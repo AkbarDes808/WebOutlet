@@ -9,351 +9,623 @@ use Illuminate\Support\Str;
 
 class TransactionController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | OUTLET MAPPING
+    |--------------------------------------------------------------------------
+    */
+
+    private array $outletMapping = [
+        'outlet 1' => 'Outlet 1',
+        'outlet 2' => 'Outlet 2',
+        'outlet 3' => 'Outlet 3',
+        'outlet 4' => 'Outlet 4',
+        'outlet 5' => 'Outlet 5',
+        'outlet 6' => 'Outlet 6',
+        'outlet 7' => 'Outlet 7',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE TRANSACTION
+    |--------------------------------------------------------------------------
+    */
+
     public function store(
         Request $request,
         StockService $stockService
     ) {
-        $cart = $request->cart;
-        $paymentMethod = $request->payment_method ?? 'cash';
-        $paymentAmount = (int) ($request->payment_amount ?? 0);
+        $cart =
+            $request->input(
+                'cart'
+            );
 
-        // =========================
-        // VALIDASI CART
-        // =========================
+        $paymentMethod =
+            $request->input(
+                'payment_method',
+                'cash'
+            );
 
-        if (!$cart || count($cart) === 0) {
+        $paymentAmount =
+            (int) $request->input(
+                'payment_amount',
+                0
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | EVENT
+        |--------------------------------------------------------------------------
+        */
+
+        $event =
+            trim(
+                (string)
+                $request->input(
+                    'event',
+                    ''
+                )
+            );
+
+        $event =
+            $event !== ''
+                ? $event
+                : null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI CART
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$cart ||
+            !is_array($cart) ||
+            count($cart) === 0
+        ) {
             return response()->json([
-                'message' => 'Cart kosong'
+                'success' =>
+                    false,
+                'message' =>
+                    'Cart kosong',
             ], 400);
         }
 
         DB::beginTransaction();
 
         try {
+            /*
+            |--------------------------------------------------------------------------
+            | USER
+            |--------------------------------------------------------------------------
+            */
 
-            // =========================
-            // USER LOGIN
-            // =========================
-
-            $user = auth()->user();
+            $user =
+                auth()->user();
 
             if (!$user) {
                 DB::rollBack();
 
                 return response()->json([
-                    'message' => 'User tidak login'
+                    'success' =>
+                        false,
+                    'message' =>
+                        'User tidak login',
                 ], 401);
             }
 
-            // =========================
-            // HITUNG TOTAL
-            // =========================
+            /*
+            |--------------------------------------------------------------------------
+            | HITUNG SUBTOTAL
+            |--------------------------------------------------------------------------
+            */
 
             $subtotal = 0;
 
             foreach ($cart as $item) {
+                $price =
+                    (int) (
+                        $item['price']
+                        ?? 0
+                    );
+
+                $qty =
+                    (int) (
+                        $item['qty']
+                        ?? 0
+                    );
+
+                if ($qty <= 0) {
+                    throw new \Exception(
+                        'Jumlah item tidak valid.'
+                    );
+                }
 
                 $subtotal +=
-                    ((int) $item['price']) *
-                    ((int) $item['qty']);
+                    $price * $qty;
             }
 
             $tax = 0;
-            $total = $subtotal + $tax;
 
-            // =========================
-            // GENERATE CODE
-            // =========================
-
-            $orderNumber = 'ORD-' . now()->format('YmdHis');
-
-            $kode = 'TRX-' . strtoupper(
-                Str::random(6)
-            );
-
-            // =========================
-            // DATA OUTLET & KASIR
-            // =========================
+            $total =
+                $subtotal + $tax;
 
             /*
-             * Role user digunakan sebagai nama outlet.
-             *
-             * Contoh:
-             * outlet 1 -> stok outlet 1
-             * outlet 2 -> stok outlet 2
-             * outlet 3 -> stok outlet 3
-             */
+            |--------------------------------------------------------------------------
+            | CODE TRANSACTION
+            |--------------------------------------------------------------------------
+            */
 
-            $role = strtolower(trim($user->role ?? ''));
-            $outletMapping = [
-                'outlet 1' => 'Outlet 1',
-                'outlet 2' => 'Outlet 2',
-                'outlet 3' => 'Outlet 3',
-                'outlet 4' => 'Outlet 4',
-                'outlet 5' => 'Outlet 5',
-                'outlet 6' => 'Outlet 6',
-                'outlet 7' => 'Outlet 7',
-            ];
+            $orderNumber =
+                'ORD-' .
+                now()->format(
+                    'YmdHis'
+                ) .
+                '-' .
+                strtoupper(
+                    Str::random(4)
+                );
 
-            if ($role === 'admin' || $role === 'spv') {
+            $kode =
+                'TRX-' .
+                strtoupper(
+                    Str::random(6)
+                );
 
-                $namaOutlet = trim((string) $request->input('outlet'));
+            /*
+            |--------------------------------------------------------------------------
+            | ROLE & OUTLET
+            |--------------------------------------------------------------------------
+            */
 
-                if ($namaOutlet === '') {
+            $role =
+                strtolower(
+                    trim(
+                        (string)
+                        (
+                            $user->role
+                            ?? ''
+                        )
+                    )
+                );
+
+            /*
+            |--------------------------------------------------------------------------
+            | ADMIN / SPV
+            |
+            | Bisa memilih outlet.
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $role === 'admin' ||
+                $role === 'spv'
+            ) {
+                $requestedOutlet =
+                    strtolower(
+                        trim(
+                            (string)
+                            $request->input(
+                                'outlet',
+                                ''
+                            )
+                        )
+                    );
+
+                if (
+                    !isset(
+                        $this->outletMapping[
+                            $requestedOutlet
+                        ]
+                    )
+                ) {
                     throw new \Exception(
-                        'Outlet belum dipilih. Silakan pilih outlet terlebih dahulu.'
+                        'Outlet belum dipilih atau tidak valid.'
                     );
                 }
 
-                if (!in_array($namaOutlet, array_values($outletMapping), true)) {
-                    throw new \Exception(
-                        'Outlet transaksi tidak valid: ' . $namaOutlet
-                    );
-                }
+                $namaOutlet =
+                    $this->outletMapping[
+                        $requestedOutlet
+                    ];
+            }
 
-            } elseif (isset($outletMapping[$role])) {
+            /*
+            |--------------------------------------------------------------------------
+            | KASIR OUTLET
+            |
+            | Outlet 1 -> Outlet 1
+            | Outlet 2 -> Outlet 2
+            | dst.
+            |--------------------------------------------------------------------------
+            */
 
-                $namaOutlet = $outletMapping[$role];
+            elseif (
+                isset(
+                    $this->outletMapping[
+                        $role
+                    ]
+                )
+            ) {
+                $namaOutlet =
+                    $this->outletMapping[
+                        $role
+                    ];
+            }
 
-            } else {
-
+            else {
                 throw new \Exception(
-                    'Role user tidak memiliki outlet yang valid: ' . $user->role
+                    'Role user tidak memiliki outlet yang valid: ' .
+                    ($user->role ?? '')
                 );
             }
-            $kasirId = $user->id;
 
-            // =========================
-            // INSERT TRANSACTION
-            // =========================
+            $kasirId =
+                $user->id;
 
-            $trxId = DB::table('transactions')->insertGetId([
+            /*
+            |--------------------------------------------------------------------------
+            | INSERT TRANSACTION
+            |--------------------------------------------------------------------------
+            */
 
-                'user_id' => $user->id,
+            $trxId =
+                DB::table(
+                    'transactions'
+                )->insertGetId([
+                    'user_id' =>
+                        $user->id,
 
-                'nama_outlet' => $namaOutlet,
+                    'nama_outlet' =>
+                        $namaOutlet,
 
-                'order_number' => $orderNumber,
+                    'event' =>
+                        $event,
 
-                'kode' => $kode,
+                    'order_number' =>
+                        $orderNumber,
 
-                'kasir_id' => $kasirId,
+                    'kode' =>
+                        $kode,
 
-                'subtotal' => $subtotal,
+                    'kasir_id' =>
+                        $kasirId,
 
-                'tax' => $tax,
+                    'subtotal' =>
+                        $subtotal,
 
-                'total' => $total,
+                    'tax' =>
+                        $tax,
 
-                'payment_method' => $paymentMethod,
+                    'total' =>
+                        $total,
 
-                'payment_amount' => $paymentAmount,
+                    'payment_method' =>
+                        $paymentMethod,
 
-                'change_amount' => max(
-                    0,
-                    $paymentAmount - $total
-                ),
+                    'payment_amount' =>
+                        $paymentAmount,
 
-                'status' => 'paid',
+                    'change_amount' =>
+                        max(
+                            0,
+                            $paymentAmount -
+                            $total
+                        ),
 
-                'created_at' => now(),
+                    'status' =>
+                        'paid',
 
-                'updated_at' => now(),
-            ]);
+                    'created_at' =>
+                        now(),
 
-            // =========================
-            // INSERT TRANSACTION ITEMS
-            // =========================
+                    'updated_at' =>
+                        now(),
+                ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | TRANSACTION ITEMS
+            |--------------------------------------------------------------------------
+            */
 
             foreach ($cart as $item) {
+                $price =
+                    (int) (
+                        $item['price']
+                        ?? 0
+                    );
+
+                $qty =
+                    (int) (
+                        $item['qty']
+                        ?? 0
+                    );
 
                 $subtotalItem =
-                    ((int) $item['price']) *
-                    ((int) $item['qty']);
+                    $price * $qty;
 
-                DB::table('transaction_items')->insert([
+                DB::table(
+                    'transaction_items'
+                )->insert([
+                    'transaction_id' =>
+                        $trxId,
 
-                    'transaction_id' => $trxId,
+                    'menu_name' =>
+                        $item['name'],
 
-                    'menu_name' => $item['name'],
+                    'price' =>
+                        $price,
 
-                    'price' => $item['price'],
+                    'qty' =>
+                        $qty,
 
-                    'qty' => $item['qty'],
+                    'subtotal' =>
+                        $subtotalItem,
 
-                    'subtotal' => $subtotalItem,
+                    'created_at' =>
+                        now(),
 
-                    'created_at' => now(),
-
-                    'updated_at' => now(),
+                    'updated_at' =>
+                        now(),
                 ]);
             }
 
-            // =========================
-            // POTONG STOK SESUAI OUTLET
-            // =========================
-            //
-            // Contoh:
-            //
-            // User = outlet 1
-            // Maka StockService hanya akan
-            // mengurangi stok pada:
-            //
-            // stock_item_outlets
-            // outlet = outlet 1
-            //
-            // Bukan stok outlet lainnya.
-            //
-            // Jika stok tidak cukup atau resep
-            // belum tersedia, exception akan terjadi
-            // dan transaksi akan di-rollback.
-            //
+            /*
+            |--------------------------------------------------------------------------
+            | POTONG STOK
+            |
+            | Kalau stok 0:
+            |
+            | StockService akan throw exception.
+            |
+            | Karena masih dalam transaction,
+            | transactions + transaction_items
+            | ikut ROLLBACK.
+            |--------------------------------------------------------------------------
+            */
 
-            $stockService->deductForTransaction(
-                $trxId,
-                $cart,
-                $namaOutlet
-            );
+            $stockService
+                ->deductForTransaction(
+                    $trxId,
+                    $cart,
+                    $namaOutlet
+                );
 
-            // =========================
-            // COMMIT
-            // =========================
+            /*
+            |--------------------------------------------------------------------------
+            | COMMIT
+            |--------------------------------------------------------------------------
+            */
 
             DB::commit();
 
-            // =========================
-            // RESPONSE
-            // =========================
+            /*
+            |--------------------------------------------------------------------------
+            | RESPONSE
+            |--------------------------------------------------------------------------
+            */
 
             return response()->json([
+                'success' =>
+                    true,
 
-                'success' => true,
+                'message' =>
+                    'Transaksi berhasil',
 
-                'message' => 'Transaksi berhasil',
+                'kode' =>
+                    $kode,
 
-                'kode' => $kode,
+                'order_number' =>
+                    $orderNumber,
 
-                'order_number' => $orderNumber,
+                'outlet' =>
+                    $namaOutlet,
 
-                'outlet' => $namaOutlet,
+                'event' =>
+                    $event,
 
-                'kasir' => $user->name,
+                'kasir' =>
+                    $user->name,
 
-                'subtotal' => $subtotal,
+                'subtotal' =>
+                    $subtotal,
 
-                'tax' => $tax,
+                'tax' =>
+                    $tax,
 
-                'total' => $total,
+                'total' =>
+                    $total,
 
-                'payment_amount' => $paymentAmount,
+                'payment_amount' =>
+                    $paymentAmount,
 
-                'change_amount' => max(
-                    0,
-                    $paymentAmount - $total
-                ),
+                'change_amount' =>
+                    max(
+                        0,
+                        $paymentAmount -
+                        $total
+                    ),
 
-                'payment_method' => $paymentMethod,
+                'payment_method' =>
+                    $paymentMethod,
 
-                'created_at' => now()->format(
-                    'd/m/Y H:i'
-                ),
+                'created_at' =>
+                    now()->format(
+                        'd/m/Y H:i'
+                    ),
 
-                'items' => collect($cart)
-                    ->map(function ($item) {
+                'items' =>
+                    collect($cart)
+                        ->map(
+                            function ($item) {
+                                return [
+                                    'name' =>
+                                        $item['name'],
 
-                        return [
-                            'name' => $item['name'],
-                            'qty' => $item['qty'],
-                            'price' => $item['price'],
-                            'subtotal' =>
-                                $item['price'] *
-                                $item['qty'],
-                        ];
+                                    'qty' =>
+                                        $item['qty'],
 
-                    })
-                    ->values(),
+                                    'price' =>
+                                        $item['price'],
+
+                                    'subtotal' =>
+                                        (
+                                            $item['price'] *
+                                            $item['qty']
+                                        ),
+                                ];
+                            }
+                        )
+                        ->values(),
             ]);
-
-        } catch (\Exception $e) {
-
-            // =========================
-            // ROLLBACK
-            // =========================
-
+        } catch (\Throwable $e) {
             DB::rollBack();
 
+            report($e);
+
             return response()->json([
+                'success' =>
+                    false,
 
-                'success' => false,
+                'message' =>
+                    'Gagal transaksi',
 
-                'message' => 'Gagal transaksi',
-
-                'error' => $e->getMessage(),
-
+                'error' =>
+                    $e->getMessage(),
             ], 500);
         }
     }
 
-    public function history(Request $request)
-    {
-        $user = auth()->user();
+    /*
+    |--------------------------------------------------------------------------
+    | HISTORY
+    |--------------------------------------------------------------------------
+    */
 
-        $query = DB::table('transactions')
-            ->leftJoin(
-                'users',
-                'transactions.kasir_id',
-                '=',
-                'users.id'
-            )
-            ->select(
-                'transactions.id',
-                'transactions.nama_outlet',
-                'transactions.order_number',
-                'users.name as kasir',
-                'transactions.total',
-                'transactions.status',
-                'transactions.payment_method',
-                'transactions.created_at'
-            )
-            ->addSelect(DB::raw('(
-                SELECT COUNT(*)
-                FROM transaction_items
-                WHERE transaction_items.transaction_id = transactions.id
-            ) as items_count'));
+    public function history(
+        Request $request
+    ) {
+        $user =
+            auth()->user();
 
-        // =========================
-        // FILTER ROLE OUTLET
-        // =========================
+        $role =
+            strtolower(
+                trim(
+                    (string)
+                    (
+                        $user->role
+                        ?? ''
+                    )
+                )
+            );
+
+        $query =
+            DB::table(
+                'transactions'
+            )
+                ->leftJoin(
+                    'users',
+                    'transactions.kasir_id',
+                    '=',
+                    'users.id'
+                )
+                ->select(
+                    'transactions.id',
+                    'transactions.nama_outlet',
+                    'transactions.event',
+                    'transactions.order_number',
+                    'users.name as kasir',
+                    'transactions.total',
+                    'transactions.status',
+                    'transactions.payment_method',
+                    'transactions.created_at'
+                )
+                ->addSelect(
+                    DB::raw(
+                        '(
+                            SELECT COUNT(*)
+                            FROM transaction_items
+                            WHERE transaction_items.transaction_id =
+                                  transactions.id
+                        ) as items_count'
+                    )
+                );
+
+        /*
+        |--------------------------------------------------------------------------
+        | FILTER ROLE OUTLET
+        |--------------------------------------------------------------------------
+        */
 
         if (
-            $user->role !== 'admin' &&
-            $user->role !== 'SPV'
+            $role !== 'admin' &&
+            $role !== 'spv'
         ) {
+            if (
+                !isset(
+                    $this->outletMapping[
+                        $role
+                    ]
+                )
+            ) {
+                abort(403);
+            }
 
             $query->where(
                 'transactions.nama_outlet',
-                $user->role
+                $this->outletMapping[
+                    $role
+                ]
             );
         }
 
-        // =========================
-        // FILTER OUTLET
-        // =========================
+        /*
+        |--------------------------------------------------------------------------
+        | FILTER OUTLET
+        |--------------------------------------------------------------------------
+        */
 
-        if ($request->filled('outlet')) {
+        if (
+            $request->filled(
+                'outlet'
+            )
+        ) {
+            $outlet =
+                strtolower(
+                    trim(
+                        (string)
+                        $request->input(
+                            'outlet'
+                        )
+                    )
+                );
 
-            $query->where(
-                'transactions.nama_outlet',
-                $request->outlet
-            );
+            if (
+                isset(
+                    $this->outletMapping[
+                        $outlet
+                    ]
+                )
+            ) {
+                $query->where(
+                    'transactions.nama_outlet',
+                    $this->outletMapping[
+                        $outlet
+                    ]
+                );
+            }
         }
 
-        // =========================
-        // FILTER DATE FROM - TO
-        // =========================
+        /*
+        |--------------------------------------------------------------------------
+        | FILTER DATE
+        |--------------------------------------------------------------------------
+        */
 
-        if ($request->filled('from')) {
-
+        if (
+            $request->filled('from')
+        ) {
             $query->whereDate(
                 'transactions.created_at',
                 '>=',
@@ -361,8 +633,9 @@ class TransactionController extends Controller
             );
         }
 
-        if ($request->filled('to')) {
-
+        if (
+            $request->filled('to')
+        ) {
             $query->whereDate(
                 'transactions.created_at',
                 '<=',
@@ -370,51 +643,75 @@ class TransactionController extends Controller
             );
         }
 
-        // =========================
-        // FILTER STATUS
-        // =========================
+        /*
+        |--------------------------------------------------------------------------
+        | STATUS
+        |--------------------------------------------------------------------------
+        */
 
-        if ($request->filled('status')) {
-
+        if (
+            $request->filled(
+                'status'
+            )
+        ) {
             $query->where(
                 'transactions.status',
                 $request->status
             );
         }
 
-        // =========================
-        // FILTER PAYMENT METHOD
-        // =========================
+        /*
+        |--------------------------------------------------------------------------
+        | PAYMENT METHOD
+        |--------------------------------------------------------------------------
+        */
 
-        if ($request->filled('payment_method')) {
-
+        if (
+            $request->filled(
+                'payment_method'
+            )
+        ) {
             $query->where(
                 'transactions.payment_method',
                 $request->payment_method
             );
         }
 
-        // =========================
-        // DROPDOWN OUTLET
-        // =========================
+        /*
+        |--------------------------------------------------------------------------
+        | OUTLET DROPDOWN
+        |--------------------------------------------------------------------------
+        */
 
-        $outlets = DB::table('transactions')
-            ->select('nama_outlet')
-            ->distinct()
-            ->orderBy('nama_outlet')
-            ->pluck('nama_outlet');
-
-        // =========================
-        // RESULT
-        // =========================
-
-        $transactions = $query
-            ->orderBy(
-                'transactions.created_at',
-                'desc'
+        $outlets =
+            DB::table(
+                'transactions'
             )
-            ->paginate(10)
-            ->withQueryString();
+                ->select(
+                    'nama_outlet'
+                )
+                ->distinct()
+                ->orderBy(
+                    'nama_outlet'
+                )
+                ->pluck(
+                    'nama_outlet'
+                );
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESULT
+        |--------------------------------------------------------------------------
+        */
+
+        $transactions =
+            $query
+                ->orderBy(
+                    'transactions.created_at',
+                    'desc'
+                )
+                ->paginate(10)
+                ->withQueryString();
 
         return view(
             'kasir.history',
@@ -425,56 +722,72 @@ class TransactionController extends Controller
         );
     }
 
-    public function detail($id)
-    {
-        $trx = DB::table('transactions')
-            ->leftJoin(
-                'users',
-                'transactions.kasir_id',
-                '=',
-                'users.id'
+    /*
+    |--------------------------------------------------------------------------
+    | DETAIL
+    |--------------------------------------------------------------------------
+    */
+
+    public function detail(
+        $id
+    ) {
+        $trx =
+            DB::table(
+                'transactions'
             )
-            ->select(
-                'transactions.id',
-                'transactions.order_number',
-                'transactions.nama_outlet',
-                'transactions.payment_method',
-                'transactions.total',
-                'transactions.payment_amount',
-                'transactions.change_amount',
-                'users.name as kasir_name'
-            )
-            ->where(
-                'transactions.id',
-                $id
-            )
-            ->first();
+                ->leftJoin(
+                    'users',
+                    'transactions.kasir_id',
+                    '=',
+                    'users.id'
+                )
+                ->select(
+                    'transactions.id',
+                    'transactions.order_number',
+                    'transactions.nama_outlet',
+                    'transactions.event',
+                    'transactions.payment_method',
+                    'transactions.total',
+                    'transactions.payment_amount',
+                    'transactions.change_amount',
+                    'users.name as kasir_name'
+                )
+                ->where(
+                    'transactions.id',
+                    $id
+                )
+                ->first();
 
         if (!$trx) {
-
             return response()->json([
-                'success' => false
+                'success' =>
+                    false,
             ], 404);
         }
 
-        $items = DB::table('transaction_items')
-            ->where(
-                'transaction_id',
-                $id
+        $items =
+            DB::table(
+                'transaction_items'
             )
-            ->get();
+                ->where(
+                    'transaction_id',
+                    $id
+                )
+                ->get();
 
         return response()->json([
-
-            'success' => true,
+            'success' =>
+                true,
 
             'trx' => [
-
                 'order_number' =>
                     $trx->order_number,
 
                 'nama_outlet' =>
                     $trx->nama_outlet,
+
+                'event' =>
+                    $trx->event,
 
                 'payment_method' =>
                     $trx->payment_method,
@@ -492,7 +805,8 @@ class TransactionController extends Controller
                     $trx->change_amount,
             ],
 
-            'items' => $items
+            'items' =>
+                $items,
         ]);
     }
 }

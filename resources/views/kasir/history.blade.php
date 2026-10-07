@@ -8,30 +8,32 @@
             <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Riwayat Pesanan</h1>
             <p class="mt-1 text-sm text-gray-500">Semua transaksi penjualan dari kasir</p>
         </div>
+
     <form method="GET" action="{{ url()->current() }}" class="rounded-2xl bg-white p-4 shadow-sm">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <select name="outlet" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100">
                 <option value="">Semua Outlet</option>
                 @foreach($outlets ?? [] as $outlet)
+                    @php
+                        $outletNames = [
+                            'Outlet 1' => 'Pusat',
+                            'Outlet 2' => 'Indomaret',
+                            'Outlet 3' => 'Bunderan',
+                            'Outlet 4' => 'Mersi',
+                            'Outlet 5' => 'Arca',
+                            'Outlet 6' => 'Larangan',
+                            'Outlet 7' => 'Unsoed',
+                        ];
+                    @endphp
                     <option value="{{ $outlet }}" {{ request('outlet') == $outlet ? 'selected' : '' }}>
-                        {{ $outlet }}
+                        {{ $outletNames[$outlet] ?? $outlet }}
                     </option>
                 @endforeach
             </select>
 
-            <input
-                type="date"
-                name="from"
-                value="{{ request('from') }}"
-                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100"
-            >
+            <input type="date" name="from" value="{{ request('from') }}" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100">
 
-            <input
-                type="date"
-                name="to"
-                value="{{ request('to') }}"
-                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100"
-            >
+            <input type="date" name="to" value="{{ request('to') }}" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100">
 
             <select name="status" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100">
                 <option value="">Semua Status</option>
@@ -45,10 +47,7 @@
                 <option value="qris" {{ request('payment_method') == 'qris' ? 'selected' : '' }}>QRIS</option>
             </select>
 
-            <button
-                type="submit"
-                class="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
-            >
+            <button type="submit" class="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">
                 Filter
             </button>
         </div>
@@ -59,9 +58,7 @@
     <div class="rounded-2xl bg-white p-10 text-center shadow-sm">
         <div class="text-4xl">🧾</div>
         <p class="mt-3 font-semibold text-gray-800">Belum ada transaksi</p>
-        <p class="mt-1 text-sm text-gray-500">
-            Belum ada transaksi yang sesuai dengan filter yang dipilih.
-        </p>
+        <p class="mt-1 text-sm text-gray-500">Belum ada transaksi yang sesuai dengan filter yang dipilih.</p>
     </div>
 @else
     <div class="space-y-3">
@@ -70,6 +67,16 @@
                 $paymentMethod = strtolower($trx->payment_method ?? 'cash');
                 $status = strtolower($trx->status ?? '');
                 $createdAt = \Carbon\Carbon::parse($trx->created_at);
+                $outletNames = [
+                    'Outlet 1' => 'Pusat',
+                    'Outlet 2' => 'Indomaret',
+                    'Outlet 3' => 'Bunderan',
+                    'Outlet 4' => 'Mersi',
+                    'Outlet 5' => 'Arca',
+                    'Outlet 6' => 'Larangan',
+                    'Outlet 7' => 'Unsoed',
+                ];
+                $namaOutlet = $outletNames[$trx->nama_outlet ?? ''] ?? ($trx->nama_outlet ?? '-');
             @endphp
 
             <div class="overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-md">
@@ -77,89 +84,50 @@
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="text-sm font-bold text-gray-900">
-                                    {{ $createdAt->format('d M Y') }}
-                                </span>
-
+                                <span class="text-sm font-bold text-gray-900">{{ $createdAt->format('d M Y') }}</span>
                                 <span class="text-sm text-gray-400">•</span>
-
-                                <span class="text-sm font-medium text-gray-500">
-                                    {{ $createdAt->format('H:i:s') }}
-                                </span>
-
-                                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
-                                    {{ $trx->nama_outlet }}
-                                </span>
+                                <span class="text-sm font-medium text-gray-500">{{ $createdAt->format('H:i:s') }}</span>
+                                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{{ $namaOutlet }}</span>
 
                                 @if($status === 'paid')
-                                    <span class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-600">
-                                        Selesai
-                                    </span>
+                                    <span class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-600">Selesai</span>
                                 @else
-                                    <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
-                                        Void
-                                    </span>
+                                    <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">Void</span>
                                 @endif
 
                                 @if($paymentMethod === 'qris')
-                                    <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600">
-                                        QRIS
-                                    </span>
+                                    <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600">QRIS</span>
                                 @else
-                                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
-                                        CASH
-                                    </span>
+                                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">CASH</span>
                                 @endif
                             </div>
 
                             <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                                 <div class="rounded-xl bg-gray-50 px-3 py-2">
-                                    <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                                        Order
-                                    </div>
-                                    <div class="mt-0.5 truncate text-sm font-semibold text-gray-800">
-                                        #{{ $trx->order_number }}
-                                    </div>
+                                    <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Order</div>
+                                    <div class="mt-0.5 truncate text-sm font-semibold text-gray-800">#{{ $trx->order_number }}</div>
                                 </div>
 
                                 <div class="rounded-xl bg-gray-50 px-3 py-2">
-                                    <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                                        Kasir
-                                    </div>
-                                    <div class="mt-0.5 truncate text-sm font-semibold text-gray-800">
-                                        {{ $trx->kasir }}
-                                    </div>
+                                    <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Kasir</div>
+                                    <div class="mt-0.5 truncate text-sm font-semibold text-gray-800">{{ $trx->kasir }}</div>
                                 </div>
 
                                 <div class="rounded-xl bg-gray-50 px-3 py-2">
-                                    <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                                        Items
-                                    </div>
-                                    <div class="mt-0.5 text-sm font-semibold text-gray-800">
-                                        {{ $trx->items_count ?? 0 }} item
-                                    </div>
+                                    <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Items</div>
+                                    <div class="mt-0.5 text-sm font-semibold text-gray-800">{{ $trx->items_count ?? 0 }} item</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="flex items-center justify-between gap-4 border-t border-gray-100 pt-4 lg:min-w-[240px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
                             <div>
-                                <div class="text-xs font-medium uppercase tracking-wide text-gray-400">
-                                    Total
-                                </div>
-                                <div class="mt-1 text-lg font-bold text-gray-900">
-                                    Rp {{ number_format($trx->total, 0, ',', '.') }}
-                                </div>
-                                <div class="mt-1 text-xs text-gray-400">
-                                    Transaksi #{{ $trx->id }}
-                                </div>
+                                <div class="text-xs font-medium uppercase tracking-wide text-gray-400">Total</div>
+                                <div class="mt-1 text-lg font-bold text-gray-900">Rp {{ number_format($trx->total, 0, ',', '.') }}</div>
+                                <div class="mt-1 text-xs text-gray-400">Transaksi #{{ $trx->id }}</div>
                             </div>
 
-                            <button
-                                type="button"
-                                class="btn-detail rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-red-50 hover:text-red-600"
-                                data-id="{{ $trx->id }}"
-                            >
+                            <button type="button" class="btn-detail rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-red-50 hover:text-red-600" data-id="{{ $trx->id }}">
                                 Detail
                             </button>
                         </div>
@@ -191,54 +159,46 @@
             @if($lastPage > 1)
                 <div class="flex items-center gap-1">
                     @if($transactions->onFirstPage())
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-300">
-                            ‹
-                        </span>
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-300">‹</span>
                     @else
-                        <a
-                            href="{{ $transactions->appends(request()->query())->previousPageUrl() }}"
-                            class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
-                        >
-                            ‹
-                        </a>
+                        <a href="{{ $transactions->appends(request()->query())->previousPageUrl() }}" class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50">‹</a>
                     @endif
 
                     @for($page = $startPage; $page <= $endPage; $page++)
                         @if($page == $currentPage)
-                            <span class="flex h-9 min-w-9 items-center justify-center rounded-lg bg-red-600 px-3 text-sm font-semibold text-white">
-                                {{ $page }}
-                            </span>
+                            <span class="flex h-9 min-w-9 items-center justify-center rounded-lg bg-red-600 px-3 text-sm font-semibold text-white">{{ $page }}</span>
                         @else
-                            <a
-                                href="{{ $transactions->appends(request()->query())->url($page) }}"
-                                class="flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 transition hover:bg-red-50 hover:text-red-600"
-                            >
-                                {{ $page }}
-                            </a>
+                            <a href="{{ $transactions->appends(request()->query())->url($page) }}" class="flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 transition hover:bg-red-50 hover:text-red-600">{{ $page }}</a>
                         @endif
                     @endfor
 
                     @if($transactions->hasMorePages())
-                        <a
-                            href="{{ $transactions->appends(request()->query())->nextPageUrl() }}"
-                            class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
-                        >
-                            ›
-                        </a>
+                        <a href="{{ $transactions->appends(request()->query())->nextPageUrl() }}" class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50">›</a>
                     @else
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-300">
-                            ›
-                        </span>
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-300">›</span>
                     @endif
                 </div>
             @endif
         </div>
     </div>
 @endif
+
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const outletNames = {
+        'Outlet 1': 'Pusat',
+        'Outlet 2': 'Indomaret',
+        'Outlet 3': 'Bunderan',
+        'Outlet 4': 'Mersi',
+        'Outlet 5': 'Arca',
+        'Outlet 6': 'Larangan',
+        'Outlet 7': 'Unsoed'
+    };
+
+    const getOutletName = outlet => outletNames[outlet] ?? outlet ?? '-';
+
     function closeModal() {
         const modal = document.getElementById('detail-modal');
         if (modal) modal.remove();
@@ -253,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn) return;
 
         const id = btn.dataset.id;
-
         closeModal();
 
         document.body.insertAdjacentHTML('beforeend', `
@@ -281,19 +240,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemsHTML += `
                     <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-3 last:border-0">
                         <div class="min-w-0 flex-1">
-                            <div class="break-words text-sm font-semibold text-gray-800">
-                                ${item.menu_name}
-                            </div>
-                            <div class="mt-0.5 text-xs text-gray-500">
-                                ${item.qty}x
-                            </div>
+                            <div class="break-words text-sm font-semibold text-gray-800">${item.menu_name}</div>
+                            <div class="mt-0.5 text-xs text-gray-500">${item.qty}x</div>
                         </div>
-                        <div class="shrink-0 text-sm font-semibold text-gray-800">
-                            ${rupiah(item.subtotal)}
-                        </div>
+                        <div class="shrink-0 text-sm font-semibold text-gray-800">${rupiah(item.subtotal)}</div>
                     </div>
                 `;
             });
+
+            const namaOutlet = getOutletName(data.trx?.nama_outlet);
 
             document.getElementById('detail-modal').innerHTML = `
                 <div class="flex h-full w-full items-center justify-center p-4">
@@ -303,14 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <h2 class="text-lg font-bold text-gray-900">Detail Transaksi</h2>
                                 <p class="mt-0.5 text-xs text-gray-500">#${data.trx.order_number}</p>
                             </div>
-
-                            <button
-                                id="close-modal"
-                                type="button"
-                                class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-xl text-gray-500 transition hover:bg-gray-200"
-                            >
-                                &times;
-                            </button>
+                            <button id="close-modal" type="button" class="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-xl text-gray-500 transition hover:bg-gray-200">&times;</button>
                         </div>
 
                         <div class="max-h-[calc(90vh-80px)] overflow-y-auto p-5">
@@ -318,12 +266,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="grid grid-cols-2 gap-3 text-sm">
                                     <div>
                                         <div class="text-xs text-gray-400">Kasir</div>
-                                        <div class="mt-1 font-semibold text-gray-800">${data.trx.kasir_name}</div>
+                                        <div class="mt-1 font-semibold text-gray-800">${data.trx.kasir_name ?? '-'}</div>
                                     </div>
 
                                     <div>
                                         <div class="text-xs text-gray-400">Outlet</div>
-                                        <div class="mt-1 font-semibold text-gray-800">${data.trx.nama_outlet}</div>
+                                        <div class="mt-1 font-semibold text-gray-800">${namaOutlet}</div>
                                     </div>
 
                                     <div>
@@ -339,10 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
 
                             <div class="mt-5">
-                                <div class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">
-                                    Pesanan
-                                </div>
-
+                                <div class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">Pesanan</div>
                                 <div class="rounded-xl border border-gray-100 px-4">
                                     ${itemsHTML}
                                 </div>
@@ -379,20 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="flex h-full w-full items-center justify-center p-4">
                     <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
                         <div class="text-4xl">⚠️</div>
-                        <div class="mt-3 font-semibold text-gray-800">
-                            Gagal mengambil detail
-                        </div>
-                        <div class="mt-1 text-sm text-gray-500">
-                            Detail transaksi tidak dapat dimuat.
-                        </div>
-
-                        <button
-                            type="button"
-                            id="close-modal"
-                            class="mt-5 rounded-xl bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700"
-                        >
-                            Tutup
-                        </button>
+                        <div class="mt-3 font-semibold text-gray-800">Gagal mengambil detail</div>
+                        <div class="mt-1 text-sm text-gray-500">Detail transaksi tidak dapat dimuat.</div>
+                        <button type="button" id="close-modal" class="mt-5 rounded-xl bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">Tutup</button>
                     </div>
                 </div>
             `;
@@ -403,10 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', e => {
         const modal = document.getElementById('detail-modal');
-
-        if (modal && e.target === modal) {
-            closeModal();
-        }
+        if (modal && e.target === modal) closeModal();
     });
 });
 </script>

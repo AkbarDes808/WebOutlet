@@ -191,11 +191,41 @@ class DashboardController extends Controller
         $dashboardItems = collect();
 
         foreach ($this->dashboardItems as $name) {
+
+            /*
+            * ITEM LEGACY
+            * Stok untuk item berikut masih menggunakan tabel bahans.
+            * Harus menggunakan sumber yang sama dengan History.
+            */
+            if (isset($this->legacyFieldMapping[$name])) {
+
+                $legacyValue = $legacyStocks[$name] ?? 0;
+
+                $dashboardItems->push((object) [
+                    'id' => null,
+                    'nama' => $name,
+                    'satuan' => null,
+                    'stok' => (float) $legacyValue,
+                    'source' => 'bahans',
+                    'stock_item_id' => null,
+                    'legacy_field' => $this->legacyFieldMapping[$name],
+                ]);
+
+                continue;
+            }
+
+
+            /*
+            * ITEM BARU
+            * Item yang tidak menggunakan sistem legacy
+            * tetap mengambil stok dari stock_items.
+            */
             $normalizedName = $this->normalizeName($name);
 
             $stockItem = $stockItemsByName->get($normalizedName);
 
             if ($stockItem) {
+
                 $stockId = $stockItem->id;
 
                 $selectedStock = $selectedOutlet
@@ -215,16 +245,18 @@ class DashboardController extends Controller
                 continue;
             }
 
-            $legacyValue = $legacyStocks[$name] ?? 0;
 
+            /*
+            * Jika tidak ditemukan di stock_items maupun bahans.
+            */
             $dashboardItems->push((object) [
                 'id' => null,
                 'nama' => $name,
                 'satuan' => null,
-                'stok' => (float) $legacyValue,
-                'source' => 'bahans',
+                'stok' => 0,
+                'source' => 'unknown',
                 'stock_item_id' => null,
-                'legacy_field' => $this->legacyFieldMapping[$name] ?? null,
+                'legacy_field' => null,
             ]);
         }
 

@@ -19,20 +19,55 @@ class StockService
         'outlet 7' => 'Outlet 7',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Stock Unlimited
+    |--------------------------------------------------------------------------
+    */
+
+    private array $unlimitedStockItems = [
+        'nasi',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | DEDUCT
+    |--------------------------------------------------------------------------
+    */
+
     public function deductForTransaction(
         int $transactionId,
         array $cart,
         string $outlet
     ): void {
-        $outletRole = strtolower(trim($outlet));
+        $outletRole =
+            strtolower(
+                trim($outlet)
+            );
 
-        if (!isset($this->outletMapping[$outletRole])) {
+        if (
+            !isset(
+                $this->outletMapping[
+                    $outletRole
+                ]
+            )
+        ) {
             throw new Exception(
-                'Outlet transaksi tidak valid: ' . $outlet
+                'Outlet transaksi tidak valid: ' .
+                $outlet
             );
         }
 
-        $namaOutlet = $this->outletMapping[$outletRole];
+        $namaOutlet =
+            $this->outletMapping[
+                $outletRole
+            ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Jangan deduct dua kali
+        |--------------------------------------------------------------------------
+        */
 
         if (
             StockDeduction::where(
@@ -44,14 +79,33 @@ class StockService
         }
 
         if (empty($cart)) {
-            throw new Exception('Cart transaksi kosong.');
+            throw new Exception(
+                'Cart transaksi kosong.'
+            );
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung kebutuhan stok
+        |--------------------------------------------------------------------------
+        */
 
         $kebutuhan = [];
 
         foreach ($cart as $item) {
-            $menuName = trim((string) ($item['name'] ?? ''));
-            $qtyMenu = (float) ($item['qty'] ?? 0);
+            $menuName =
+                trim(
+                    (string) (
+                        $item['name']
+                        ?? ''
+                    )
+                );
+
+            $qtyMenu =
+                (float) (
+                    $item['qty']
+                    ?? 0
+                );
 
             if ($menuName === '') {
                 throw new Exception(
@@ -61,12 +115,19 @@ class StockService
 
             if ($qtyMenu <= 0) {
                 throw new Exception(
-                    'Jumlah menu tidak valid: ' . $menuName
+                    'Jumlah menu tidak valid: ' .
+                    $menuName
                 );
             }
 
-            $menu = Menu::where('name', $menuName)
-                ->where('is_active', true)
+            $menu = Menu::where(
+                'name',
+                $menuName
+            )
+                ->where(
+                    'is_active',
+                    true
+                )
                 ->first();
 
             if (!$menu) {
@@ -76,7 +137,8 @@ class StockService
                 );
             }
 
-            $resep = $menu->stockItems()
+            $resep = $menu
+                ->stockItems()
                 ->with('stockItem')
                 ->get();
 
@@ -96,15 +158,28 @@ class StockService
                     );
                 }
 
-                $stockItemId = (int) $recipe->stock_item_id;
-                $jumlah = (float) $recipe->jumlah * $qtyMenu;
+                $stockItemId =
+                    (int)
+                    $recipe->stock_item_id;
+
+                $jumlah =
+                    (float)
+                    $recipe->jumlah *
+                    $qtyMenu;
 
                 if ($jumlah <= 0) {
                     continue;
                 }
 
-                $kebutuhan[$stockItemId] =
-                    ($kebutuhan[$stockItemId] ?? 0) + $jumlah;
+                $kebutuhan[
+                    $stockItemId
+                ] =
+                    (
+                        $kebutuhan[
+                            $stockItemId
+                        ]
+                        ?? 0
+                    ) + $jumlah;
             }
         }
 
@@ -114,15 +189,35 @@ class StockService
             );
         }
 
-        $stockItemIds = array_keys($kebutuhan);
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil stock item
+        |--------------------------------------------------------------------------
+        */
 
-        $stockItems = DB::table('stock_items')
-            ->whereIn('id', $stockItemIds)
+        $stockItemIds =
+            array_keys(
+                $kebutuhan
+            );
+
+        $stockItems = DB::table(
+            'stock_items'
+        )
+            ->whereIn(
+                'id',
+                $stockItemIds
+            )
             ->get()
             ->keyBy('id');
 
         foreach ($stockItemIds as $stockItemId) {
-            if (!isset($stockItems[$stockItemId])) {
+            if (
+                !isset(
+                    $stockItems[
+                        $stockItemId
+                    ]
+                )
+            ) {
                 throw new Exception(
                     'Stock item ID ' .
                     $stockItemId .
@@ -130,97 +225,313 @@ class StockService
                 );
             }
 
-            if (!$stockItems[$stockItemId]->aktif) {
+            if (
+                !$stockItems[
+                    $stockItemId
+                ]->aktif
+            ) {
                 throw new Exception(
                     'Stock item "' .
-                    $stockItems[$stockItemId]->nama .
+                    $stockItems[
+                        $stockItemId
+                    ]->nama .
                     '" sedang tidak aktif.'
                 );
             }
         }
 
-        $outletStockRows = DB::table('stock_item_outlets')
-            ->whereIn('stock_item_id', $stockItemIds)
-            ->whereRaw(
-                'LOWER(TRIM(outlet)) = ?',
-                [$outletRole]
+        /*
+        |--------------------------------------------------------------------------
+        | Validasi & lock stok outlet
+        |--------------------------------------------------------------------------
+        */
+
+        $outletStockRows =
+            DB::table(
+                'stock_item_outlets'
             )
-            ->lockForUpdate()
-            ->get()
-            ->keyBy('stock_item_id');
+                ->whereIn(
+                    'stock_item_id',
+                    $stockItemIds
+                )
+                ->whereRaw(
+                    'LOWER(TRIM(outlet)) = ?',
+                    [$outletRole]
+                )
+                ->lockForUpdate()
+                ->get()
+                ->groupBy(
+                    'stock_item_id'
+                );
 
-        foreach ($kebutuhan as $stockItemId => $jumlah) {
-            $stockItem = $stockItems[$stockItemId];
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI STOK
+        |--------------------------------------------------------------------------
+        */
 
-            if (!isset($outletStockRows[$stockItemId])) {
+        foreach (
+            $kebutuhan
+            as $stockItemId => $jumlah
+        ) {
+            $stockItem =
+                $stockItems[
+                    $stockItemId
+                ];
+
+            $namaStock =
+                strtolower(
+                    trim(
+                        $stockItem->nama
+                    )
+                );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Nasi unlimited
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                in_array(
+                    $namaStock,
+                    $this->unlimitedStockItems,
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Tidak ada row outlet = stok 0
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !isset(
+                    $outletStockRows[
+                        $stockItemId
+                    ]
+                )
+            ) {
                 throw new Exception(
                     'Stok "' .
                     $stockItem->nama .
-                    '" belum memiliki mapping ke inventory ' .
+                    '" di ' .
                     $namaOutlet .
-                    '. Transaksi tidak diproses agar stok tidak salah.'
+                    ' = 0. Transaksi tidak dapat diproses.'
                 );
             }
 
-            $row = $outletStockRows[$stockItemId];
-            $stok = (float) $row->stok;
+            /*
+            |--------------------------------------------------------------------------
+            | Jumlahkan duplicate row
+            |--------------------------------------------------------------------------
+            */
 
-            if ($stok < $jumlah) {
+            $stokTersedia = 0;
+
+            foreach (
+                $outletStockRows[
+                    $stockItemId
+                ] as $row
+            ) {
+                $stokTersedia +=
+                    (float)
+                    $row->stok;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | STOK 0 / KURANG = TRANSAKSI DITOLAK
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $stokTersedia < $jumlah
+            ) {
                 throw new Exception(
                     'Stok ' .
                     $stockItem->nama .
                     ' di ' .
                     $namaOutlet .
-                    ' tidak mencukupi. Tersedia: ' .
-                    $this->formatNumber($stok) .
+                    ' tidak mencukupi. ' .
+                    'Tersedia: ' .
+                    $this->formatNumber(
+                        $stokTersedia
+                    ) .
                     ', dibutuhkan: ' .
-                    $this->formatNumber($jumlah) .
+                    $this->formatNumber(
+                        $jumlah
+                    ) .
                     '.'
                 );
             }
         }
 
-        foreach ($kebutuhan as $stockItemId => $jumlah) {
-            $row = $outletStockRows[$stockItemId];
+        /*
+        |--------------------------------------------------------------------------
+        | POTONG STOK
+        |--------------------------------------------------------------------------
+        */
 
-            $berhasil = DB::table('stock_item_outlets')
-                ->where('id', $row->id)
-                ->update([
-                    'stok' => (float) $row->stok - $jumlah,
-                    'updated_at' => now(),
-                ]);
+        foreach (
+            $kebutuhan
+            as $stockItemId => $jumlah
+        ) {
+            $stockItem =
+                $stockItems[
+                    $stockItemId
+                ];
 
-            if ($berhasil !== 1) {
+            $namaStock =
+                strtolower(
+                    trim(
+                        $stockItem->nama
+                    )
+                );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Nasi unlimited:
+            | tidak mengurangi physical stock.
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                in_array(
+                    $namaStock,
+                    $this->unlimitedStockItems,
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            $rows =
+                $outletStockRows[
+                    $stockItemId
+                ];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Karena duplicate data mungkin masih ada,
+            | kurangi secara aman dari row-row tersebut.
+            |--------------------------------------------------------------------------
+            */
+
+            $sisa =
+                $jumlah;
+
+            foreach ($rows as $row) {
+                if ($sisa <= 0) {
+                    break;
+                }
+
+                $stokRow =
+                    (float) $row->stok;
+
+                if ($stokRow <= 0) {
+                    continue;
+                }
+
+                $potong =
+                    min(
+                        $stokRow,
+                        $sisa
+                    );
+
+                $berhasil =
+                    DB::table(
+                        'stock_item_outlets'
+                    )
+                        ->where(
+                            'id',
+                            $row->id
+                        )
+                        ->update([
+                            'stok' =>
+                                $stokRow -
+                                $potong,
+                            'updated_at' =>
+                                now(),
+                        ]);
+
+                if ($berhasil !== 1) {
+                    throw new Exception(
+                        'Gagal mengurangi stok "' .
+                        $stockItem->nama .
+                        '" di ' .
+                        $namaOutlet .
+                        '.'
+                    );
+                }
+
+                $sisa -=
+                    $potong;
+            }
+
+            if ($sisa > 0) {
                 throw new Exception(
-                    'Gagal mengurangi stok "' .
-                    $stockItems[$stockItemId]->nama .
-                    '" di ' .
-                    $namaOutlet .
-                    '.'
+                    'Stok ' .
+                    $stockItem->nama .
+                    ' tidak mencukupi.'
                 );
             }
         }
 
-        foreach ($kebutuhan as $stockItemId => $jumlah) {
+        /*
+        |--------------------------------------------------------------------------
+        | SIMPAN HISTORY DEDUCTION
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (
+            $kebutuhan
+            as $stockItemId => $jumlah
+        ) {
+            $stockItem =
+                $stockItems[
+                    $stockItemId
+                ];
+
             StockDeduction::create([
-                'transaction_id' => $transactionId,
-                'stock_item_id' => $stockItemId,
-                'jumlah' => $jumlah,
+                'transaction_id' =>
+                    $transactionId,
+
+                'stock_item_id' =>
+                    $stockItemId,
+
+                'jumlah' =>
+                    $jumlah,
+
                 'keterangan' =>
                     'Transaksi ' .
                     $transactionId .
                     ' - ' .
                     $namaOutlet .
                     ' - ' .
-                    $stockItems[$stockItemId]->nama,
+                    $stockItem->nama,
             ]);
         }
     }
 
-    private function formatNumber(float $number): string
-    {
+    private function formatNumber(
+        float $number
+    ): string {
         return floor($number) == $number
-            ? number_format($number, 0, ',', '.')
-            : number_format($number, 2, ',', '.');
+            ? number_format(
+                $number,
+                0,
+                ',',
+                '.'
+            )
+            : number_format(
+                $number,
+                2,
+                ',',
+                '.'
+            );
     }
 }

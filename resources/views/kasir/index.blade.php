@@ -5,29 +5,34 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 @php
-$user = Auth::user();
-$role = strtolower(trim($user->role ?? ''));
+    $user = Auth::user();
 
- 
-$isAdmin = $role === 'admin';
-$isSpv = $role === 'spv';
-$isOutletUser = str_contains($role, 'outlet');
+    $role = strtolower(
+        trim($user->role ?? '')
+    );
 
-$outletMap = [
-    'outlet 1' => 'Outlet 1',
-    'outlet 2' => 'Outlet 2',
-    'outlet 3' => 'Outlet 3',
-    'outlet 4' => 'Outlet 4',
-    'outlet 5' => 'Outlet 5',
-    'outlet 6' => 'Outlet 6',
-    'outlet 7' => 'Outlet 7',
-];
+    $isAdmin = $role === 'admin';
+    $isSpv = $role === 'spv';
+    $isOutletUser = str_contains(
+        $role,
+        'outlet'
+    );
 
-$userOutlet = $outletMap[$role] ?? null;
+    $outletMap = [
+        'outlet 1' => 'Outlet 1',
+        'outlet 2' => 'Outlet 2',
+        'outlet 3' => 'Outlet 3',
+        'outlet 4' => 'Outlet 4',
+        'outlet 5' => 'Outlet 5',
+        'outlet 6' => 'Outlet 6',
+        'outlet 7' => 'Outlet 7',
+    ];
 
-$transactionOutlet = $userOutlet ?? request('outlet');
- 
+    $userOutlet =
+        $outletMap[$role] ?? null;
 
+    $transactionOutlet =
+        $userOutlet ?? request('outlet');
 @endphp
 
 <div class="bg-gray-100 flex flex-col h-full min-h-0">
@@ -90,26 +95,32 @@ $transactionOutlet = $userOutlet ?? request('outlet');
                         name="outlet"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
+                        <option value="">-- Pilih Outlet --</option>
 
-                        <option value="">
-                            -- Pilih Outlet --
-                        </option>
+                        @php
+                            $outletNames = [
+                                'Outlet 1' => 'Pusat',
+                                'Outlet 2' => 'Indomaret',
+                                'Outlet 3' => 'Bunderan',
+                                'Outlet 4' => 'Mersi',
+                                'Outlet 5' => 'Arca',
+                                'Outlet 6' => 'Larangan',
+                                'Outlet 7' => 'Unsoed',
+                            ];
+                        @endphp
 
                         @for($i = 1; $i <= 7; $i++)
-
                             @php
                                 $outletName = 'Outlet ' . $i;
                             @endphp
 
                             <option
                                 value="{{ $outletName }}"
-                                {{ $transactionOutlet === $outletName ? 'selected' : '' }}
+                                {{ $transactionOutlet == $outletName ? 'selected' : '' }}
                             >
-                                {{ $outletName }}
+                                {{ $outletNames[$outletName] ?? $outletName }}
                             </option>
-
                         @endfor
-
                     </select>
 
                 </div>
@@ -161,7 +172,37 @@ $transactionOutlet = $userOutlet ?? request('outlet');
 
     </div>
 
-@endif
+    {{-- =========================================================
+     EVENT TRANSAKSI
+     ========================================================= --}}
+
+    <div class="px-3 pt-3 lg:px-6 lg:pt-4">
+        <div class="bg-white rounded-xl shadow-sm border p-4">
+
+            <label
+                for="transaction-event"
+                class="block text-sm font-semibold text-gray-700 mb-1"
+            >
+                Event
+            </label>
+
+            <input
+                type="text"
+                id="transaction-event"
+                name="event"
+                maxlength="255"
+                placeholder="Opsional"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+
+            <p class="text-xs text-gray-500 mt-1">
+                Isi jika transaksi berasal dari event tertentu.
+            </p>
+
+        </div>
+    </div>
+
+    @endif
 
 
 {{-- =========================================================

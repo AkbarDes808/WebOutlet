@@ -22,16 +22,7 @@
 
     if (isset($stockItems)) {
         $ayamStockItems = $stockItems->filter(function ($stockItem) {
-            return in_array(
-                strtolower(trim($stockItem->nama ?? '')),
-                [
-                    'ayam - sayap',
-                    'ayam - paha bawah',
-                    'ayam - dada',
-                    'ayam - paha atas',
-                ],
-                true
-            );
+            return (int) $stockItem->id === 12;
         })->values();
     }
 
@@ -135,16 +126,26 @@
                 onchange="this.form.submit()"
                 class="border border-gray-300 rounded-lg p-2 w-full md:w-1/2 bg-white"
             >
-                <option value="">
-                    -- Total Semua Outlet --
-                </option>
+                <option value="">-- Total Semua Outlet --</option>
+
+                @php
+                    $outletNames = [
+                        'outlet 1' => 'Pusat',
+                        'outlet 2' => 'Indomaret',
+                        'outlet 3' => 'Bunderan',
+                        'outlet 4' => 'Mersi',
+                        'outlet 5' => 'Arca',
+                        'outlet 6' => 'Larangan',
+                        'outlet 7' => 'Unsoed',
+                    ];
+                @endphp
 
                 @foreach($outlets as $outlet)
                     <option
                         value="{{ $outlet }}"
                         {{ ($selectedOutlet ?? '') == $outlet ? 'selected' : '' }}
                     >
-                        {{ $outlet }}
+                        {{ $outletNames[strtolower($outlet)] ?? $outlet }}
                     </option>
                 @endforeach
             </select>

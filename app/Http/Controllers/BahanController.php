@@ -60,6 +60,12 @@ class BahanController extends Controller
         'plastik_jumbo' => 'Plastik Jumbo',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Legacy Bahan -> Stock Item
+    |--------------------------------------------------------------------------
+    */
+
     private array $stockItemMapping = [
         'ayam' => 12,
         'tepung' => 10,
@@ -80,6 +86,12 @@ class BahanController extends Controller
         12 => 'Ayam',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Outlet
+    |--------------------------------------------------------------------------
+    */
+
     private array $outletMapping = [
         'outlet 1' => 'Outlet 1',
         'outlet 2' => 'Outlet 2',
@@ -88,6 +100,16 @@ class BahanController extends Controller
         'outlet 5' => 'Outlet 5',
         'outlet 6' => 'Outlet 6',
         'outlet 7' => 'Outlet 7',
+    ];
+
+    private array $outletDisplayNames = [
+    'Outlet 1' => 'Pusat',
+    'Outlet 2' => 'Indomaret',
+    'Outlet 3' => 'Bunderan',
+    'Outlet 4' => 'Mersi',
+    'Outlet 5' => 'Arca',
+    'Outlet 6' => 'Larangan',
+    'Outlet 7' => 'Unsoed',
     ];
 
     private array $outlets = [
@@ -100,16 +122,25 @@ class BahanController extends Controller
         'outlet 7' => 'Outlet 7',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | INDEX
+    |--------------------------------------------------------------------------
+    */
+
     public function index(Request $request)
     {
-        $user = auth()->user();
         $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
         $isSpv = $role === 'spv';
         $isAdminOrSpv = $isAdmin || $isSpv;
 
-        $selectedOutlet = $this->resolveOutlet($request, $role, $isAdminOrSpv);
+        $selectedOutlet = $this->resolveOutlet(
+            $request,
+            $role,
+            $isAdminOrSpv
+        );
 
         $namaOutlet = $this->outletMapping[$selectedOutlet];
 
@@ -118,21 +149,45 @@ class BahanController extends Controller
             ->orderBy('id')
             ->get();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil stok outlet
+        |--------------------------------------------------------------------------
+        */
+
         $stockOutletRows = DB::table('stock_item_outlets')
             ->whereRaw(
                 'LOWER(TRIM(outlet)) = ?',
                 [$selectedOutlet]
             )
+            ->orderBy('id')
             ->get()
-            ->keyBy('stock_item_id');
+            ->groupBy('stock_item_id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Jika ada duplicate row, jumlahkan hanya untuk tampilan.
+        |--------------------------------------------------------------------------
+        */
 
         $totalStok = [];
 
         foreach ($stockItems as $stockItem) {
-            $totalStok[$stockItem->id] = isset($stockOutletRows[$stockItem->id])
-                ? (float) $stockOutletRows[$stockItem->id]->stok
-                : 0;
+            $totalStok[$stockItem->id] = 0;
+
+            if (isset($stockOutletRows[$stockItem->id])) {
+                foreach ($stockOutletRows[$stockItem->id] as $row) {
+                    $totalStok[$stockItem->id] +=
+                        (float) $row->stok;
+                }
+            }
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total semua outlet
+        |--------------------------------------------------------------------------
+        */
 
         $allOutletStocks = DB::table('stock_item_outlets')
             ->get()
@@ -144,14 +199,47 @@ class BahanController extends Controller
             $totalSemuaOutlet[$stockItem->id] = 0;
 
             if (isset($allOutletStocks[$stockItem->id])) {
-                foreach ($allOutletStocks[$stockItem->id] as $row) {
-                    $totalSemuaOutlet[$stockItem->id] += (float) $row->stok;
+                foreach (
+                    $allOutletStocks[$stockItem->id]
+                    as $row
+                ) {
+                    $totalSemuaOutlet[$stockItem->id] +=
+                        (float) $row->stok;
                 }
             }
         }
 
-        $bahan = new Bahan();
-        $bahan->nama_outlet = $namaOutlet;
+        /*
+        |--------------------------------------------------------------------------
+        | Legacy Bahan
+        |--------------------------------------------------------------------------
+        */
+
+        $bahan = Bahan::whereRaw(
+            'LOWER(TRIM(nama_outlet)) = ?',
+            [strtolower($namaOutlet)]
+        )
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$bahan) {
+            $bahan = new Bahan();
+            $bahan->nama_outlet = $namaOutlet;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Untuk compatibility dengan Blade lama,
+        | stockOutletRows dikembalikan sebagai row pertama.
+        |--------------------------------------------------------------------------
+        */
+
+        $stockOutletRowsForView = collect();
+
+        foreach ($stockOutletRows as $stockItemId => $rows) {
+            $stockOutletRowsForView[$stockItemId] =
+                $rows->first();
+        }
 
         return view('bahans.index', [
             'bahan' => $bahan,
@@ -162,11 +250,17 @@ class BahanController extends Controller
             'isSpv' => $isSpv,
             'isAdminOrSpv' => $isAdminOrSpv,
             'stockItems' => $stockItems,
-            'stockOutletRows' => $stockOutletRows,
+            'stockOutletRows' => $stockOutletRowsForView,
             'totalStok' => $totalStok,
             'totalSemuaOutlet' => $totalSemuaOutlet,
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE
+    |--------------------------------------------------------------------------
+    */
 
     public function store(Request $request)
     {
@@ -176,27 +270,43 @@ class BahanController extends Controller
         $isSpv = $role === 'spv';
         $isAdminOrSpv = $isAdmin || $isSpv;
 
-        if (!$isAdminOrSpv && !str_contains($role, 'outlet')) {
+        if (
+            !$isAdminOrSpv &&
+            !str_contains($role, 'outlet')
+        ) {
             abort(403);
         }
 
-        $requestedOutlet = strtolower(
-            trim(
-                (string) $request->input('nama_outlet', $role)
-            )
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | Tentukan outlet
+        |--------------------------------------------------------------------------
+        */
 
-        if (!$isAdminOrSpv) {
+        if ($isAdminOrSpv) {
+            $requestedOutlet = strtolower(
+                trim(
+                    (string) $request->input(
+                        'nama_outlet',
+                        $request->input('outlet', '')
+                    )
+                )
+            );
+        } else {
             $requestedOutlet = $role;
         }
 
         if (!isset($this->outletMapping[$requestedOutlet])) {
             return back()
                 ->withInput()
-                ->with('error', 'Outlet tidak valid.');
+                ->with(
+                    'error',
+                    'Outlet tidak valid.'
+                );
         }
 
-        $namaOutlet = $this->outletMapping[$requestedOutlet];
+        $namaOutlet =
+            $this->outletMapping[$requestedOutlet];
 
         try {
             DB::transaction(function () use (
@@ -204,17 +314,62 @@ class BahanController extends Controller
                 $requestedOutlet,
                 $namaOutlet
             ) {
-                $legacyData = $this->prepareLegacyData($request);
+                /*
+                |--------------------------------------------------------------------------
+                | Legacy data
+                |--------------------------------------------------------------------------
+                */
 
-                $stockItemData = $this->prepareStockItemData(
-                    $request
-                );
+                $legacyData =
+                    $this->prepareLegacyData($request);
 
-                if (!$legacyData['has_input'] && !$stockItemData['has_input']) {
+                /*
+                |--------------------------------------------------------------------------
+                | Stock Item langsung
+                |--------------------------------------------------------------------------
+                */
+
+                $stockItemData =
+                    $this->prepareStockItemData($request);
+
+                if (
+                    !$legacyData['has_input'] &&
+                    !$stockItemData['has_input']
+                ) {
                     throw new \RuntimeException(
                         'Masukkan minimal satu jumlah stok.'
                     );
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | PENTING:
+                |
+                | stock_item_xxx yang mempunyai mapping ke
+                | legacy Bahan digabung terlebih dahulu.
+                |
+                | Contoh:
+                |
+                | stock_item_12 = 1
+                |
+                | -> ayam +1
+                |
+                | Kemudian syncStockItems hanya berjalan SEKALI.
+                |
+                | Ini mencegah double increment.
+                |--------------------------------------------------------------------------
+                */
+
+                $this->mergeStockItemIntoLegacyData(
+                    $legacyData,
+                    $stockItemData
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Simpan legacy Bahan
+                |--------------------------------------------------------------------------
+                */
 
                 if ($legacyData['has_input']) {
                     $this->storeLegacyBahan(
@@ -223,12 +378,11 @@ class BahanController extends Controller
                     );
                 }
 
-                if ($stockItemData['has_input']) {
-                    $this->syncDirectStockItems(
-                        $stockItemData['data'],
-                        $requestedOutlet
-                    );
-                }
+                /*
+                |--------------------------------------------------------------------------
+                | Sync mapped stock item
+                |--------------------------------------------------------------------------
+                */
 
                 if ($legacyData['has_input']) {
                     $this->syncStockItems(
@@ -236,12 +390,27 @@ class BahanController extends Controller
                         $legacyData['data']
                     );
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Sync stock item yang TIDAK mempunyai
+                | mapping legacy.
+                |--------------------------------------------------------------------------
+                */
+
+                $this->syncUnmappedDirectStockItems(
+                    $stockItemData['data'],
+                    $requestedOutlet
+                );
             });
 
             return redirect()
                 ->route(
                     'bahans.index',
-                    ['outlet' => $requestedOutlet]
+                    [
+                        'outlet' =>
+                            $requestedOutlet
+                    ]
                 )
                 ->with(
                     'success',
@@ -254,20 +423,31 @@ class BahanController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Gagal menyimpan stok: ' . $e->getMessage()
+                    'Gagal menyimpan stok: ' .
+                    $e->getMessage()
                 );
         }
     }
 
-    private function prepareLegacyData(Request $request): array
-    {
+    /*
+    |--------------------------------------------------------------------------
+    | PREPARE LEGACY
+    |--------------------------------------------------------------------------
+    */
+
+    private function prepareLegacyData(
+        Request $request
+    ): array {
         $data = [];
         $hasInput = false;
 
         foreach ($this->rows as $field) {
             $value = $request->input($field);
 
-            if ($value === null || trim((string) $value) === '') {
+            if (
+                $value === null ||
+                trim((string) $value) === ''
+            ) {
                 $data[$field] = 0;
                 continue;
             }
@@ -281,7 +461,10 @@ class BahanController extends Controller
             if (!is_numeric($value)) {
                 throw new \RuntimeException(
                     'Nilai ' .
-                    ($this->historyLabels[$field] ?? $field) .
+                    (
+                        $this->historyLabels[$field]
+                        ?? $field
+                    ) .
                     ' harus berupa angka.'
                 );
             }
@@ -291,7 +474,10 @@ class BahanController extends Controller
             if ($value < 0) {
                 throw new \RuntimeException(
                     'Nilai ' .
-                    ($this->historyLabels[$field] ?? $field) .
+                    (
+                        $this->historyLabels[$field]
+                        ?? $field
+                    ) .
                     ' tidak boleh negatif.'
                 );
             }
@@ -309,8 +495,15 @@ class BahanController extends Controller
         ];
     }
 
-    private function prepareStockItemData(Request $request): array
-    {
+    /*
+    |--------------------------------------------------------------------------
+    | PREPARE STOCK ITEM
+    |--------------------------------------------------------------------------
+    */
+
+    private function prepareStockItemData(
+        Request $request
+    ): array {
         $data = [];
         $hasInput = false;
 
@@ -320,7 +513,22 @@ class BahanController extends Controller
             ->get();
 
         foreach ($stockItems as $stockItem) {
-            $field = 'stock_item_' . $stockItem->id;
+
+            /*
+            |--------------------------------------------------------------------------
+            | BUG FIX UTAMA
+            |
+            | SALAH:
+            | stock_item\_12
+            |
+            | BENAR:
+            | stock_item_12
+            |--------------------------------------------------------------------------
+            */
+
+            $field =
+                'stock_item_' .
+                $stockItem->id;
 
             if (!$request->has($field)) {
                 continue;
@@ -328,7 +536,10 @@ class BahanController extends Controller
 
             $value = $request->input($field);
 
-            if ($value === null || trim((string) $value) === '') {
+            if (
+                $value === null ||
+                trim((string) $value) === ''
+            ) {
                 continue;
             }
 
@@ -369,6 +580,46 @@ class BahanController extends Controller
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | MERGE STOCK ITEM KE LEGACY
+    |--------------------------------------------------------------------------
+    */
+
+    private function mergeStockItemIntoLegacyData(
+        array &$legacyData,
+        array $stockItemData
+    ): void {
+        foreach (
+            $this->stockItemMapping
+            as $field => $stockItemId
+        ) {
+            $jumlah =
+                (float) (
+                    $stockItemData['data'][$stockItemId]
+                    ?? 0
+                );
+
+            if ($jumlah <= 0) {
+                continue;
+            }
+
+            $legacyData['data'][$field] =
+                (float) (
+                    $legacyData['data'][$field]
+                    ?? 0
+                ) + $jumlah;
+
+            $legacyData['has_input'] = true;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE LEGACY BAHAN
+    |--------------------------------------------------------------------------
+    */
+
     private function storeLegacyBahan(
         array $data,
         string $namaOutlet
@@ -385,78 +636,45 @@ class BahanController extends Controller
 
         foreach ($this->rows as $field) {
             $oldValue = $latest
-                ? (float) ($latest->{$field} ?? 0)
+                ? (float) (
+                    $latest->{$field}
+                    ?? 0
+                )
                 : 0;
 
-            $inputValue = (float) ($data[$field] ?? 0);
+            $inputValue =
+                (float) (
+                    $data[$field] ?? 0
+                );
 
-            $newValues[$field] = $oldValue + $inputValue;
+            $newValues[$field] =
+                $oldValue + $inputValue;
         }
 
-        $newValues['nama_outlet'] = $namaOutlet;
+        $newValues['nama_outlet'] =
+            $namaOutlet;
 
         Bahan::create($newValues);
     }
 
-    private function syncDirectStockItems(
-        array $data,
-        string $requestedOutlet
-    ): void {
-        foreach ($data as $stockItemId => $jumlah) {
-            if ($jumlah <= 0) {
-                continue;
-            }
-
-            $stockItem = DB::table('stock_items')
-                ->where('id', $stockItemId)
-                ->where('aktif', true)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$stockItem) {
-                throw new \RuntimeException(
-                    'Stock item ID ' .
-                    $stockItemId .
-                    ' tidak ditemukan atau tidak aktif.'
-                );
-            }
-
-            $stockOutlet = DB::table('stock_item_outlets')
-                ->where('stock_item_id', $stockItemId)
-                ->whereRaw(
-                    'LOWER(TRIM(outlet)) = ?',
-                    [$requestedOutlet]
-                )
-                ->lockForUpdate()
-                ->first();
-
-            if (!$stockOutlet) {
-                DB::table('stock_item_outlets')->insert([
-                    'stock_item_id' => $stockItemId,
-                    'outlet' => $requestedOutlet,
-                    'stok' => $jumlah,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                continue;
-            }
-
-            DB::table('stock_item_outlets')
-                ->where('id', $stockOutlet->id)
-                ->update([
-                    'stok' => (float) $stockOutlet->stok + $jumlah,
-                    'updated_at' => now(),
-                ]);
-        }
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | SYNC MAPPED STOCK ITEMS
+    |--------------------------------------------------------------------------
+    */
 
     private function syncStockItems(
         string $requestedOutlet,
         array $data
     ): void {
-        foreach ($this->stockItemMapping as $field => $stockItemId) {
-            $jumlah = (float) ($data[$field] ?? 0);
+        foreach (
+            $this->stockItemMapping
+            as $field => $stockItemId
+        ) {
+            $jumlah =
+                (float) (
+                    $data[$field] ?? 0
+                );
 
             if ($jumlah <= 0) {
                 continue;
@@ -471,41 +689,279 @@ class BahanController extends Controller
             if (!$stockItem) {
                 throw new \RuntimeException(
                     'Stock item "' .
-                    ($this->stockItemNames[$stockItemId]
-                        ?? ('ID ' . $stockItemId)) .
+                    (
+                        $this->stockItemNames[
+                            $stockItemId
+                        ]
+                        ?? (
+                            'ID ' .
+                            $stockItemId
+                        )
+                    ) .
                     '" tidak ditemukan atau tidak aktif.'
                 );
             }
 
-            $stockOutlet = DB::table('stock_item_outlets')
-                ->where('stock_item_id', $stockItemId)
+            /*
+            |--------------------------------------------------------------------------
+            | Ambil SEMUA row outlet.
+            |
+            | Ini penting untuk mencegah duplicate row
+            | membuat stok salah.
+            |--------------------------------------------------------------------------
+            */
+
+            $rows = DB::table(
+                'stock_item_outlets'
+            )
+                ->where(
+                    'stock_item_id',
+                    $stockItemId
+                )
                 ->whereRaw(
                     'LOWER(TRIM(outlet)) = ?',
                     [$requestedOutlet]
                 )
                 ->lockForUpdate()
-                ->first();
+                ->get();
 
-            if (!$stockOutlet) {
-                DB::table('stock_item_outlets')->insert([
-                    'stock_item_id' => $stockItemId,
-                    'outlet' => $requestedOutlet,
-                    'stok' => $jumlah,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+            $namaOutlet =
+                $this->outletMapping[
+                    $requestedOutlet
+                ];
+
+            if ($rows->isEmpty()) {
+                DB::table(
+                    'stock_item_outlets'
+                )->insert([
+                    'stock_item_id' =>
+                        $stockItemId,
+                    'outlet' =>
+                        $namaOutlet,
+                    'stok' =>
+                        $jumlah,
+                    'created_at' =>
+                        now(),
+                    'updated_at' =>
+                        now(),
                 ]);
 
                 continue;
             }
 
-            DB::table('stock_item_outlets')
-                ->where('id', $stockOutlet->id)
+            /*
+            |--------------------------------------------------------------------------
+            | Gunakan row pertama sebagai canonical.
+            | Duplicate row digabung ke row pertama.
+            |--------------------------------------------------------------------------
+            */
+
+            $canonical = $rows->first();
+
+            $currentStock = 0;
+
+            foreach ($rows as $row) {
+                $currentStock +=
+                    (float) $row->stok;
+            }
+
+            $newStock =
+                $currentStock + $jumlah;
+
+            DB::table(
+                'stock_item_outlets'
+            )
+                ->where(
+                    'id',
+                    $canonical->id
+                )
                 ->update([
-                    'stok' => (float) $stockOutlet->stok + $jumlah,
-                    'updated_at' => now(),
+                    'outlet' =>
+                        $namaOutlet,
+                    'stok' =>
+                        $newStock,
+                    'updated_at' =>
+                        now(),
                 ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Hapus duplicate rows setelah digabung.
+            |--------------------------------------------------------------------------
+            */
+
+            if ($rows->count() > 1) {
+                $duplicateIds =
+                    $rows
+                        ->skip(1)
+                        ->pluck('id')
+                        ->values()
+                        ->all();
+
+                DB::table(
+                    'stock_item_outlets'
+                )
+                    ->whereIn(
+                        'id',
+                        $duplicateIds
+                    )
+                    ->delete();
+            }
         }
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SYNC DIRECT STOCK ITEM
+    |
+    | Hanya untuk stock item yang tidak mempunyai
+    | mapping legacy.
+    |--------------------------------------------------------------------------
+    */
+
+    private function syncUnmappedDirectStockItems(
+        array $data,
+        string $requestedOutlet
+    ): void {
+        foreach ($data as $stockItemId => $jumlah) {
+
+            $stockItemId =
+                (int) $stockItemId;
+
+            $jumlah =
+                (float) $jumlah;
+
+            if ($jumlah <= 0) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Jika sudah mempunyai mapping legacy,
+            | jangan diproses lagi.
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                in_array(
+                    $stockItemId,
+                    array_values(
+                        $this->stockItemMapping
+                    ),
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            $stockItem = DB::table('stock_items')
+                ->where(
+                    'id',
+                    $stockItemId
+                )
+                ->where(
+                    'aktif',
+                    true
+                )
+                ->lockForUpdate()
+                ->first();
+
+            if (!$stockItem) {
+                throw new \RuntimeException(
+                    'Stock item ID ' .
+                    $stockItemId .
+                    ' tidak ditemukan atau tidak aktif.'
+                );
+            }
+
+            $rows = DB::table(
+                'stock_item_outlets'
+            )
+                ->where(
+                    'stock_item_id',
+                    $stockItemId
+                )
+                ->whereRaw(
+                    'LOWER(TRIM(outlet)) = ?',
+                    [$requestedOutlet]
+                )
+                ->lockForUpdate()
+                ->get();
+
+            $namaOutlet =
+                $this->outletMapping[
+                    $requestedOutlet
+                ];
+
+            if ($rows->isEmpty()) {
+                DB::table(
+                    'stock_item_outlets'
+                )->insert([
+                    'stock_item_id' =>
+                        $stockItemId,
+                    'outlet' =>
+                        $namaOutlet,
+                    'stok' =>
+                        $jumlah,
+                    'created_at' =>
+                        now(),
+                    'updated_at' =>
+                        now(),
+                ]);
+
+                continue;
+            }
+
+            $canonical = $rows->first();
+
+            $currentStock = 0;
+
+            foreach ($rows as $row) {
+                $currentStock +=
+                    (float) $row->stok;
+            }
+
+            DB::table(
+                'stock_item_outlets'
+            )
+                ->where(
+                    'id',
+                    $canonical->id
+                )
+                ->update([
+                    'outlet' =>
+                        $namaOutlet,
+                    'stok' =>
+                        $currentStock + $jumlah,
+                    'updated_at' =>
+                        now(),
+                ]);
+
+            if ($rows->count() > 1) {
+                $duplicateIds =
+                    $rows
+                        ->skip(1)
+                        ->pluck('id')
+                        ->values()
+                        ->all();
+
+                DB::table(
+                    'stock_item_outlets'
+                )
+                    ->whereIn(
+                        'id',
+                        $duplicateIds
+                    )
+                    ->delete();
+            }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HISTORY
+    |--------------------------------------------------------------------------
+    */
 
     public function history(Request $request)
     {
@@ -515,17 +971,33 @@ class BahanController extends Controller
         $isSpv = $role === 'spv';
         $isAdminOrSpv = $isAdmin || $isSpv;
 
-        if (!$isAdminOrSpv && !str_contains($role, 'outlet')) {
+        if (
+            !$isAdminOrSpv &&
+            !str_contains($role, 'outlet')
+        ) {
             abort(403);
         }
 
-        $selectedOutlet = $this->resolveOutlet(
-            $request,
-            $role,
-            $isAdminOrSpv
-        );
+        $selectedOutlet =
+            $this->resolveOutlet(
+                $request,
+                $role,
+                $isAdminOrSpv
+            );
 
-        $namaOutlet = $this->outletMapping[$selectedOutlet];
+        $namaOutlet =
+            $this->outletMapping[
+                $selectedOutlet
+            ];
+        $namaOutletDisplay =
+                $this->outletDisplayNames[$namaOutlet]
+                ?? $namaOutlet;
+
+        /*
+        |--------------------------------------------------------------------------
+        | HISTORY PENAMBAHAN
+        |--------------------------------------------------------------------------
+        */
 
         $bahanHistory = Bahan::whereRaw(
             'LOWER(TRIM(nama_outlet)) = ?',
@@ -535,24 +1007,34 @@ class BahanController extends Controller
             ->get();
 
         $penambahanHistory = [];
+
         $previous = null;
 
         foreach ($bahanHistory as $current) {
             $items = [];
 
-            foreach ($this->historyLabels as $field => $label) {
-                $currentValue = (float) (
-                    $current->{$field} ?? 0
-                );
+            foreach (
+                $this->historyLabels
+                as $field => $label
+            ) {
+                $currentValue =
+                    (float) (
+                        $current->{$field}
+                        ?? 0
+                    );
 
                 if ($previous === null) {
                     $change = $currentValue;
                 } else {
-                    $previousValue = (float) (
-                        $previous->{$field} ?? 0
-                    );
+                    $previousValue =
+                        (float) (
+                            $previous->{$field}
+                            ?? 0
+                        );
 
-                    $change = $currentValue - $previousValue;
+                    $change =
+                        $currentValue -
+                        $previousValue;
                 }
 
                 if ($change <= 0) {
@@ -560,30 +1042,50 @@ class BahanController extends Controller
                 }
 
                 $items[] = [
-                    'nama' => $label,
-                    'item' => $label,
-                    'field' => $field,
-                    'change' => $change,
-                    'total' => $currentValue,
+                    'nama' =>
+                        $label,
+                    'item' =>
+                        $label,
+                    'field' =>
+                        $field,
+                    'change' =>
+                        $change,
+                    'total' =>
+                        $currentValue,
                 ];
             }
 
             if (!empty($items)) {
                 $penambahanHistory[] = [
-                    'id' => $current->id,
-                    'type' => 'input',
-                    'type_label' => 'Penambahan',
-                    'nama_outlet' => $namaOutlet,
-                    'created_at' => $current->created_at,
-                    'updated_at' => $current->updated_at,
-                    'items' => $items,
+                    'id' =>
+                        $current->id,
+                    'type' =>
+                        'input',
+                    'type_label' =>
+                        'Penambahan',
+                    'nama_outlet' =>
+                        $namaOutletDisplay,
+                    'created_at' =>
+                        $current->created_at,
+                    'updated_at' =>
+                        $current->updated_at,
+                    'items' =>
+                        $items,
                 ];
             }
 
             $previous = $current;
         }
 
-        $deductions = DB::table('stock_deductions as sd')
+        /*
+        |--------------------------------------------------------------------------
+        | HISTORY PENGGUNAAN / KASIR
+        |--------------------------------------------------------------------------
+        */
+
+        $deductions = DB::table(
+            'stock_deductions as sd'
+        )
             ->join(
                 'stock_items as si',
                 'si.id',
@@ -610,98 +1112,208 @@ class BahanController extends Controller
                 't.order_number',
                 't.nama_outlet',
             ])
-            ->orderBy('sd.created_at', 'desc')
+            ->orderBy(
+                'sd.created_at',
+                'desc'
+            )
             ->get();
 
         $penggunaanHistory = [];
 
         foreach ($deductions as $deduction) {
-            $transactionId = (int) $deduction->transaction_id;
+            $transactionId =
+                (int) $deduction->transaction_id;
 
-            if (!isset($penggunaanHistory[$transactionId])) {
-                $penggunaanHistory[$transactionId] = [
-                    'id' => 'transaction-' . $transactionId,
-                    'transaction_id' => $transactionId,
-                    'type' => 'usage',
-                    'type_label' => 'Penggunaan',
-                    'nama_outlet' => $namaOutlet,
-                    'order_number' => $deduction->order_number,
-                    'created_at' => $deduction->created_at,
-                    'items' => [],
+            if (
+                !isset(
+                    $penggunaanHistory[
+                        $transactionId
+                    ]
+                )
+            ) {
+                $penggunaanHistory[
+                    $transactionId
+                ] = [
+                    'id' =>
+                        'transaction-' .
+                        $transactionId,
+                    'transaction_id' =>
+                        $transactionId,
+                    'type' =>
+                        'usage',
+                    'type_label' =>
+                        'Penggunaan',
+                    'nama_outlet' =>
+                        $namaOutletDisplay,
+                    'order_number' =>
+                        $deduction->order_number,
+                    'created_at' =>
+                        $deduction->created_at,
+                    'items' =>
+                        [],
                 ];
             }
 
-            $penggunaanHistory[$transactionId]['items'][] = [
-                'nama' => $deduction->stock_item,
-                'item' => $deduction->stock_item,
-                'field' => null,
-                'change' => -((float) $deduction->jumlah),
-                'total' => null,
+            $penggunaanHistory[
+                $transactionId
+            ]['items'][] = [
+                'nama' =>
+                    $deduction->stock_item,
+                'item' =>
+                    $deduction->stock_item,
+                'field' =>
+                    null,
+                'change' =>
+                    -(
+                        (float)
+                        $deduction->jumlah
+                    ),
+                'total' =>
+                    null,
             ];
         }
 
         $history = array_merge(
             $penambahanHistory,
-            array_values($penggunaanHistory)
+            array_values(
+                $penggunaanHistory
+            )
         );
 
-        usort($history, function ($a, $b) {
-            $timeA = strtotime(
-                (string) $a['created_at']
-            );
+        usort(
+            $history,
+            function ($a, $b) {
+                $timeA = strtotime(
+                    (string)
+                    $a['created_at']
+                );
 
-            $timeB = strtotime(
-                (string) $b['created_at']
-            );
+                $timeB = strtotime(
+                    (string)
+                    $b['created_at']
+                );
 
-            return $timeB <=> $timeA;
-        });
+                return $timeB <=> $timeA;
+            }
+        );
 
-        $stockItems = DB::table('stock_items')
-            ->where('aktif', true)
+        /*
+        |--------------------------------------------------------------------------
+        | STOCK ITEMS
+        |--------------------------------------------------------------------------
+        */
+
+        $stockItems = DB::table(
+            'stock_items'
+        )
+            ->where(
+                'aktif',
+                true
+            )
             ->orderBy('id')
             ->get();
 
-        $stockOutletRows = DB::table('stock_item_outlets')
+        $stockOutletRows = DB::table(
+            'stock_item_outlets'
+        )
             ->whereRaw(
                 'LOWER(TRIM(outlet)) = ?',
                 [$selectedOutlet]
             )
+            ->orderBy('id')
             ->get()
-            ->keyBy('stock_item_id');
+            ->groupBy('stock_item_id');
 
         $totalStok = [];
 
         foreach ($stockItems as $stockItem) {
-            $totalStok[$stockItem->id] = isset(
-                $stockOutletRows[$stockItem->id]
-            )
-                ? (float) $stockOutletRows[$stockItem->id]->stok
-                : 0;
+            $totalStok[
+                $stockItem->id
+            ] = 0;
+
+            if (
+                isset(
+                    $stockOutletRows[
+                        $stockItem->id
+                    ]
+                )
+            ) {
+                foreach (
+                    $stockOutletRows[
+                        $stockItem->id
+                    ] as $row
+                ) {
+                    $totalStok[
+                        $stockItem->id
+                    ] +=
+                        (float)
+                        $row->stok;
+                }
+            }
         }
 
-        return view('bahans.history', [
-            'history' => $history,
-            'selectedOutlet' => $selectedOutlet,
-            'namaOutlet' => $namaOutlet,
-            'outlets' => $this->outlets,
-            'isAdmin' => $isAdmin,
-            'isSpv' => $isSpv,
-            'isAdminOrSpv' => $isAdminOrSpv,
-            'stockItems' => $stockItems,
-            'stockOutletRows' => $stockOutletRows,
-            'totalStok' => $totalStok,
-        ]);
+        $stockOutletRowsForView =
+            collect();
+
+        foreach (
+            $stockOutletRows
+            as $stockItemId => $rows
+        ) {
+            $stockOutletRowsForView[
+                $stockItemId
+            ] = $rows->first();
+        }
+
+        return view(
+            'bahans.history',
+            [
+                'history' =>
+                    $history,
+                'selectedOutlet' =>
+                    $selectedOutlet,
+                'namaOutlet' =>
+                    $namaOutlet,
+                'outlets' =>
+                    $this->outlets,
+                'isAdmin' =>
+                    $isAdmin,
+                'isSpv' =>
+                    $isSpv,
+                'isAdminOrSpv' =>
+                    $isAdminOrSpv,
+                'stockItems' =>
+                    $stockItems,
+                'stockOutletRows' =>
+                    $stockOutletRowsForView,
+                'totalStok' =>
+                    $totalStok,
+            ]
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | USER ROLE
+    |--------------------------------------------------------------------------
+    */
 
     private function getUserRole(): string
     {
         return strtolower(
             trim(
-                (string) (auth()->user()->role ?? '')
+                (string) (
+                    auth()->user()->role
+                    ?? ''
+                )
             )
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESOLVE OUTLET
+    |--------------------------------------------------------------------------
+    */
 
     private function resolveOutlet(
         Request $request,
@@ -709,35 +1321,58 @@ class BahanController extends Controller
         bool $isAdminOrSpv
     ): string {
         if ($isAdminOrSpv) {
-            $selectedOutlet = strtolower(
-                trim(
-                    (string) $request->input(
-                        'outlet',
-                        'outlet 1'
+            $selectedOutlet =
+                strtolower(
+                    trim(
+                        (string)
+                        $request->input(
+                            'outlet',
+                            'outlet 1'
+                        )
                     )
-                )
-            );
+                );
 
-            if (!isset($this->outletMapping[$selectedOutlet])) {
-                $selectedOutlet = 'outlet 1';
+            if (
+                !isset(
+                    $this->outletMapping[
+                        $selectedOutlet
+                    ]
+                )
+            ) {
+                $selectedOutlet =
+                    'outlet 1';
             }
 
             return $selectedOutlet;
         }
 
-        if (!str_contains($role, 'outlet')) {
+        if (!str_contains(
+            $role,
+            'outlet'
+        )) {
             abort(403);
         }
 
-        if (!isset($this->outletMapping[$role])) {
+        if (
+            !isset(
+                $this->outletMapping[$role]
+            )
+        ) {
             abort(403);
         }
 
         return $role;
     }
 
-    private function formatNumber(float $number): string
-    {
+    /*
+    |--------------------------------------------------------------------------
+    | FORMAT NUMBER
+    |--------------------------------------------------------------------------
+    */
+
+    private function formatNumber(
+        float $number
+    ): string {
         if (floor($number) == $number) {
             return number_format(
                 $number,

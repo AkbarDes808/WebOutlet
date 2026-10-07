@@ -19,14 +19,28 @@
                     <select
                         name="outlet"
                         onchange="this.form.submit()"
-                        class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 sm:w-auto"
+                        class="border border-gray-300 rounded-lg p-2 w-full md:w-1/2 bg-white"
                     >
+                        <option value="">-- Total Semua Outlet --</option>
+
+                        @php
+                            $outletNames = [
+                                'outlet 1' => 'Pusat',
+                                'outlet 2' => 'Indomaret',
+                                'outlet 3' => 'Bunderan',
+                                'outlet 4' => 'Mersi',
+                                'outlet 5' => 'Arca',
+                                'outlet 6' => 'Larangan',
+                                'outlet 7' => 'Unsoed',
+                            ];
+                        @endphp
+
                         @foreach($outlets as $outlet)
                             <option
-                                value="{{ strtolower($outlet) }}"
-                                {{ strtolower($selectedOutlet) === strtolower($outlet) ? 'selected' : '' }}
+                                value="{{ $outlet }}"
+                                {{ ($selectedOutlet ?? '') == $outlet ? 'selected' : '' }}
                             >
-                                {{ $outlet }}
+                                {{ $outletNames[strtolower($outlet)] ?? $outlet }}
                             </option>
                         @endforeach
                     </select>

@@ -1,5 +1,18 @@
 document.addEventListener('DOMContentLoaded', function () {
+   
+    window.transactionEvent = function () {
+    const element =
+        document.getElementById(
+            'transaction-event'
+        );
 
+    if (!element) {
+        return '';
+    }
+
+    return element.value.trim();
+    
+    };
     let cart = {};
     let isCheckoutProcessing = false;
 
@@ -2162,6 +2175,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                         outlet:
                                             window.transactionOutlet(),
+
+                                        event:
+                                            window.transactionEvent(),
 
                                         payment_method:
                                             paymentMethod,
