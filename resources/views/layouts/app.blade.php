@@ -177,10 +177,10 @@ function confirmKeluar() {
 
 
         {{-- INVENTORY ADMIN + SPV --}}
-        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv'], true))
+        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv']) || str_starts_with(strtolower(trim(Auth::user()->role ?? '')), 'outlet '))
 
             <a
-                href="{{ route('bahans.index') }}"
+                href="{{ route('bahans.index') }}
                 class="
                     flex items-center gap-3
                     px-4 py-3
@@ -237,10 +237,10 @@ function confirmKeluar() {
 
 
         {{-- HISTORY ADMIN + SPV --}}
-        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv'], true))
+        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv']) || str_starts_with(strtolower(trim(Auth::user()->role ?? '')), 'outlet '))
 
             <a
-                href="{{ route('bahans.history') }}"
+                href="{{ route('bahans.history') }}
                 class="
                     flex items-center gap-3
                     px-4 py-3
