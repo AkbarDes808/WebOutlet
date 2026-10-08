@@ -44,30 +44,33 @@
 </head>
 
 <script>
-function confirmLogout() {
+function confirmKeluar() {
+    const role = @json(strtolower(trim(auth()->user()->role ?? '')));
+    const hasShiftRule = role.startsWith('outlet ');
 
     Swal.fire({
         title: 'Keluar Akun?',
-        html: `
-            <div class="text-sm text-gray-600">
-                Shift Anda masih berjalan.<br>
-                Pilih tindakan yang ingin dilakukan.
-            </div>
-        `,
+        html: hasShiftRule
+            ? '<div class="text-sm text-gray-600">Shift Anda masih berjalan.<br>Pilih tindakan yang ingin dilakukan.</div>'
+            : '<div class="text-sm text-gray-600">Anda akan keluar dari akun.</div>',
         icon: 'question',
-        showConfirmButton: false,
+        showConfirmButton: true,
+        confirmButtonText: 'Keluar Saja',
         showCancelButton: true,
-        showDenyButton: true,
+        cancelButtonText: hasShiftRule ? 'Batal' : 'Tutup',
+        showDenyButton: hasShiftRule,
         denyButtonText: 'Tutup Shift',
-        cancelButtonText: 'Batal',
-        denyButtonColor: '#dc2626',
+        confirmButtonColor: '#dc2626',
+        denyButtonColor: '#2563eb',
         cancelButtonColor: '#6b7280'
     }).then((result) => {
-
         if (result.isDenied) {
             window.location.href = "{{ route('shift.index') }}";
+            return;
         }
-
+        if (result.isConfirmed) {
+            document.getElementById('logout-form')?.submit();
+        }
     });
 }
 </script>
@@ -79,6 +82,8 @@ function confirmLogout() {
     id="overlay"
     class="fixed inset-0 bg-black/40 hidden z-40 lg:hidden">
 </div>
+
+<form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">@csrf</form>
 
 <!-- SIDEBAR -->
 <aside
@@ -194,7 +199,7 @@ function confirmLogout() {
 
                 <i class="fa-solid fa-box"></i>
 
-                Inventory
+                Stok
 
             </a>
 
@@ -254,7 +259,7 @@ function confirmLogout() {
 
                 <i class="fa-solid fa-clock-rotate-left"></i>
 
-                History
+                Riwayat Stok
 
             </a>
 
@@ -336,7 +341,7 @@ function confirmLogout() {
 
                 <i class="fa-solid fa-building"></i>
 
-                Outlets
+                Outlet
 
             </a>
 
@@ -417,7 +422,7 @@ function confirmLogout() {
                     <i class="fa-solid fa-print w-4 text-center"></i>
 
                     <span>
-                        Test Printer
+                        Tes Printer
                     </span>
 
                 </button>
@@ -452,7 +457,7 @@ function confirmLogout() {
                 type="button"
                 onclick="{{ $shiftClosed
                     ? 'document.getElementById(\'logoutForm\').submit()'
-                    : 'confirmLogout()'
+                    : 'confirmKeluar()'
                 }}"
                 class="
                     w-full
@@ -469,7 +474,7 @@ function confirmLogout() {
 
                 <i class="fa-solid fa-right-from-bracket"></i>
 
-                Logout
+                Keluar
 
             </button>
 
