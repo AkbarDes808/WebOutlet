@@ -9,8 +9,18 @@
     $isAdmin = $role === 'admin';
     $isSpv = $role === 'spv';
 
-    $outletMap = collect(range(1, 7))
-        ->mapWithKeys(fn($i) => ["outlet {$i}" => "Outlet {$i}"]);
+    $outletMap = [
+        'outlet 1' => 'Outlet 1',
+        'outlet 2' => 'Outlet 2',
+        'outlet 3' => 'Outlet 3',
+        'outlet 4' => 'Outlet 4',
+        'outlet 5' => 'Outlet 5',
+        'outlet 6' => 'Outlet 6',
+        'outlet 7' => 'Outlet 7',
+        'outlet 8' => 'Outlet 8',
+        'outlet 9' => 'Outlet 9',
+        'outlet 10' => 'Outlet 10',
+    ];
 
     $userOutlet = $outletMap[$role] ?? null;
     $transactionOutlet = $userOutlet ?? request('outlet');
@@ -23,6 +33,9 @@
         'Outlet 5' => 'Arca',
         'Outlet 6' => 'Larangan',
         'Outlet 7' => 'Unsoed',
+        'Outlet 8' => 'Event 1',
+        'Outlet 9' => 'Event 2',
+        'Outlet 10' => 'Event',
     ];
 
     $menuGroups = $menus->groupBy(
