@@ -1205,28 +1205,45 @@ class BahanController extends Controller
             ];
         }
 
-        $adjustments = DB::table('stock_adjustments as sa')
+        $adjustmentRows = DB::table('stock_adjustments as sa')
             ->join('stock_items as si', 'si.id', '=', 'sa.stock_item_id')
             ->leftJoin('users as u', 'u.id', '=', 'sa.user_id')
             ->when($namaOutlet, fn ($q) => $q->whereRaw('LOWER(TRIM(sa.outlet)) = ?', [strtolower($namaOutlet)]))
-            ->select('sa.id', 'sa.outlet', 'sa.jumlah', 'sa.jenis', 'sa.created_at', 'si.nama as stock_item', 'u.name as nama_user')
+            ->select('sa.id', 'sa.outlet', 'sa.jumlah', 'sa.jenis', 'sa.user_id', 'sa.created_at', 'si.nama as stock_item', 'u.name as nama_user')
             ->orderByDesc('sa.created_at')
-            ->get()
-            ->map(fn ($row) => [
-                'id' => 'adjustment-' . $row->id,
-                'type' => 'input',
-                'type_label' => $row->jenis,
-                'nama_outlet' => $this->displayOutletName($row->outlet),
-                'created_at' => $row->created_at,
-                'updated_at' => $row->created_at,
-                'items' => [[
-                    'nama' => $row->stock_item,
-                    'item' => $row->stock_item,
-                    'field' => null,
-                    'change' => (float) $row->jumlah,
-                    'total' => null,
-                ]],
-            ])->all();
+            ->get();
+
+        // Satu kali input bahan menghasilkan satu card history.
+        // NOW() PostgreSQL menggunakan timestamp transaksi yang sama untuk
+        // seluruh item yang disimpan dalam satu DB::transaction().
+        $adjustments = $adjustmentRows
+            ->groupBy(function ($row) {
+                return strtolower(trim((string) $row->outlet))
+                    . '|' . (string) $row->user_id
+                    . '|' . (string) $row->jenis
+                    . '|' . (string) $row->created_at;
+            })
+            ->map(function ($rows) {
+                $first = $rows->first();
+
+                return [
+                    'id' => 'adjustment-' . $first->id,
+                    'type' => 'input',
+                    'type_label' => $first->jenis,
+                    'nama_outlet' => $this->displayOutletName($first->outlet),
+                    'created_at' => $first->created_at,
+                    'updated_at' => $first->created_at,
+                    'items' => $rows->map(fn ($row) => [
+                        'nama' => $row->stock_item,
+                        'item' => $row->stock_item,
+                        'field' => null,
+                        'change' => (float) $row->jumlah,
+                        'total' => null,
+                    ])->values()->all(),
+                ];
+            })
+            ->values()
+            ->all();
 
         $history = array_merge($penambahanHistory, array_values($penggunaanHistory), $adjustments);
 
