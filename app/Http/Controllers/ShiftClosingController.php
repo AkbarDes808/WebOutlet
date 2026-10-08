@@ -11,13 +11,29 @@ class ShiftClosingController extends Controller
 {
     private function getOutlet($user)
     {
-        return strtolower(trim($user->role));
+        $role = strtolower(trim($user->role));
+
+        // Admin dan SPV merekap seluruh outlet.
+        if (in_array($role, ['admin', 'spv'], true)) {
+            return 'all';
+        }
+
+        return $role;
     }
 
     private function baseQuery($today, $outlet)
     {
-        return Transaction::whereDate('created_at', $today)
-            ->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [$outlet]);
+        $query = Transaction::whereDate('created_at', $today);
+
+        // Admin dan SPV melihat seluruh transaksi dari semua outlet.
+        if ($outlet !== 'all') {
+            $query->whereRaw(
+                'LOWER(TRIM(nama_outlet)) = ?',
+                [$outlet]
+            );
+        }
+
+        return $query;
     }
 
     public function index()
