@@ -819,6 +819,9 @@ class TransactionController extends Controller
                 'payment_method' =>
                     $trx->payment_method,
 
+                'status' =>
+                    $trx->status,
+
                 'kasir_name' =>
                     $trx->kasir_name,
 
