@@ -31,6 +31,14 @@
     $displayOutlet = $selectedOutlet ?: 'Semua Outlet';
 
     $dashboardStockItems = collect($dashboardItems ?? []);
+
+    $itemUnits = [
+        'Ayam' => 'ekor',
+        'Kotak' => 'pcs',
+        'Plastik Sedang' => 'lembar',
+        'Kantong Sambal' => 'pcs',
+        'Kertas Ayam' => 'lembar',
+    ];
     
     $getStock = function ($id) use ($totalStok, $totalSemuaOutlet, $selectedOutlet) {
         $source = $selectedOutlet ? ($totalStok ?? []) : ($totalSemuaOutlet ?? []);
@@ -269,7 +277,7 @@
                         </div>
 
                         <div class="text-xs text-gray-400 mt-1">
-                            {{ $item->satuan ?? 'pcs' }}
+                            {{ $itemUnits[$item->nama] ?? ($item->satuan ?? 'pcs') }}
                         </div>
                     </div>
                 @empty
