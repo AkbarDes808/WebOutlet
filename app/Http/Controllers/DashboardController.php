@@ -82,10 +82,13 @@ class DashboardController extends Controller
         $isOutletUser = str_starts_with($role, 'outlet ');
 
         if ($isOutletUser) {
-            $filterOutlet = $this->outletMapping[$role] ?? null;
+            // Simpan outlet user dalam bentuk canonical role:
+            // outlet 8, outlet 9, outlet 10.
+            // Nama Event 1/Event 2/Event hanya untuk tampilan.
+            $filterOutlet = $role;
 
-            $outlets = $filterOutlet
-                ? collect([$filterOutlet])
+            $outlets = isset($this->outletMapping[$role])
+                ? collect([$this->outletMapping[$role]])
                 : collect();
         } else {
             $filterOutlet = $this->normalizeOutlet(
