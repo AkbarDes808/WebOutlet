@@ -1041,16 +1041,27 @@ class BahanController extends Controller
         // User outlet WAJIB dikunci ke outlet miliknya.
         // Request ?outlet=... tidak boleh mengubah filter outlet.
         if (!$isAdminOrSpv) {
+            // Outlet user hanya boleh melihat history outlet miliknya.
             $selectedOutlet = $role;
         } else {
-            $selectedOutlet = $this->resolveOutlet(
-                $request,
-                $role,
-                $isAdminOrSpv
+            // Admin/SPV: kosong atau "all" = semua outlet.
+            // Jangan pernah fallback ke Outlet 1 saat filter kosong.
+            $requestedOutlet = strtolower(
+                trim((string) $request->input('outlet', ''))
             );
+
+            if ($requestedOutlet === '' || $requestedOutlet === 'all') {
+                $selectedOutlet = 'all';
+            } elseif (isset($this->outletMapping[$requestedOutlet])) {
+                $selectedOutlet = $requestedOutlet;
+            } else {
+                $selectedOutlet = 'all';
+            }
         }
 
-        $namaOutlet = $selectedOutlet === 'all' ? null : $this->outletMapping[$selectedOutlet];
+        $namaOutlet = $selectedOutlet === 'all'
+            ? null
+            : ($this->outletMapping[$selectedOutlet] ?? null);
         $namaOutletDisplay = $selectedOutlet === 'all'
             ? 'Semua Outlet'
             : ($this->outletDisplayNames[$namaOutlet] ?? $namaOutlet);
