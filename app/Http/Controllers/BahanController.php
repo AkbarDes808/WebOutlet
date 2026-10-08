@@ -1388,22 +1388,38 @@ class BahanController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | SISA STOK REAL-TIME
+        | SISA STOK REAL-TIME SESUAI OUTLET HISTORY
         |
-        | Nilai Sisa Stok pada history harus selalu mengambil
-        | kondisi terakhir dari stock_item_outlets, bukan
-        | snapshot stok saat history dibuat.
+        | Jangan menggunakan $totalStok di sini karena nilainya mengikuti
+        | filter outlet halaman. Setiap card history harus mengambil sisa
+        | stok dari outlet asal card tersebut.
         |--------------------------------------------------------------------------
         */
 
-        $currentStockByName = [];
+        $allStockOutletRows = DB::table('stock_item_outlets')
+            ->whereIn('stock_item_id', $stockItems->pluck('id')->all())
+            ->get();
+
+        $currentStockByOutlet = [];
+
+        foreach ($allStockOutletRows as $row) {
+            $outletKey = strtolower(trim((string) $row->outlet));
+
+            if (!isset($currentStockByOutlet[$outletKey])) {
+                $currentStockByOutlet[$outletKey] = [];
+            }
+
+            $currentStockByOutlet[$outletKey][(int) $row->stock_item_id] =
+                ($currentStockByOutlet[$outletKey][(int) $row->stock_item_id] ?? 0)
+                + (float) $row->stok;
+        }
+
+        $stockItemIdByName = [];
 
         foreach ($stockItems as $stockItem) {
-            $currentStockByName[
+            $stockItemIdByName[
                 strtolower(trim($stockItem->nama))
-            ] = (float) (
-                $totalStok[$stockItem->id] ?? 0
-            );
+            ] = (int) $stockItem->id;
         }
 
         /*
@@ -1418,7 +1434,30 @@ class BahanController extends Controller
             'cabe' => 'kantong sambal',
         ];
 
+        /*
+        |--------------------------------------------------------------------------
+        | Nama outlet history selalu berupa nama display.
+        | Balikkan ke outlet canonical agar lookup stok tepat.
+        |--------------------------------------------------------------------------
+        */
+
+        $displayToCanonicalOutlet = [];
+
+        foreach ($this->outletDisplayNames as $canonicalName => $displayName) {
+            $displayToCanonicalOutlet[
+                strtolower(trim($displayName))
+            ] = strtolower($canonicalName);
+        }
+
         foreach ($history as &$record) {
+            $historyOutlet = strtolower(
+                trim((string) ($record['nama_outlet'] ?? ''))
+            );
+
+            $canonicalOutlet =
+                $displayToCanonicalOutlet[$historyOutlet]
+                ?? $historyOutlet;
+
             foreach ($record['items'] as &$item) {
                 $historyName = strtolower(
                     trim((string) ($item['nama'] ?? ''))
@@ -1428,9 +1467,14 @@ class BahanController extends Controller
                     $stockNameAliases[$historyName]
                     ?? $historyName;
 
-                if (array_key_exists($lookupName, $currentStockByName)) {
+                $stockItemId =
+                    $stockItemIdByName[$lookupName]
+                    ?? null;
+
+                if ($stockItemId !== null) {
                     $item['total'] =
-                        $currentStockByName[$lookupName];
+                        $currentStockByOutlet[$canonicalOutlet][$stockItemId]
+                        ?? 0;
                 }
             }
         }
