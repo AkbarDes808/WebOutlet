@@ -1057,88 +1057,6 @@ class BahanController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | HISTORY PENAMBAHAN
-        |--------------------------------------------------------------------------
-        */
-
-        $bahanHistory = Bahan::query()
-            ->when($namaOutlet, fn ($q) => $q->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [strtolower($namaOutlet)]))
-            ->orderBy('id', 'asc')
-            ->get();
-
-        $penambahanHistory = [];
-
-        $previous = null;
-
-        foreach ($bahanHistory as $current) {
-            $items = [];
-
-            foreach (
-                $this->historyLabels
-                as $field => $label
-            ) {
-                $currentValue =
-                    (float) (
-                        $current->{$field}
-                        ?? 0
-                    );
-
-                if ($previous === null) {
-                    $change = $currentValue;
-                } else {
-                    $previousValue =
-                        (float) (
-                            $previous->{$field}
-                            ?? 0
-                        );
-
-                    $change =
-                        $currentValue -
-                        $previousValue;
-                }
-
-                if ($change <= 0) {
-                    continue;
-                }
-
-                $items[] = [
-                    'nama' =>
-                        $label,
-                    'item' =>
-                        $label,
-                    'field' =>
-                        $field,
-                    'change' =>
-                        $change,
-                    'total' =>
-                        $currentValue,
-                ];
-            }
-
-            if (!empty($items)) {
-                $penambahanHistory[] = [
-                    'id' =>
-                        $current->id,
-                    'type' =>
-                        'input',
-                    'type_label' =>
-                        'Penambahan',
-                    'nama_outlet' =>
-                        $namaOutletDisplay,
-                    'created_at' =>
-                        $current->created_at,
-                    'updated_at' =>
-                        $current->updated_at,
-                    'items' =>
-                        $items,
-                ];
-            }
-
-            $previous = $current;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
         | HISTORY PENGGUNAAN / KASIR
         |--------------------------------------------------------------------------
         */
@@ -1201,7 +1119,7 @@ class BahanController extends Controller
                     'type_label' =>
                         'Penggunaan',
                     'nama_outlet' =>
-                        $namaOutletDisplay,
+                        $this->displayOutletName($deduction->nama_outlet),
                     'order_number' =>
                         $deduction->order_number,
                     'created_at' =>
