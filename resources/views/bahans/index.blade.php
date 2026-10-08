@@ -21,6 +21,14 @@ $newItems = $stockItems->whereIn('nama', [
 
 $ayam = $stockItems->where('id', 12);
 
+$itemUnits = [
+    'Ayam' => 'ekor',
+    'Kotak' => 'pcs',
+    'Plastik Sedang' => 'lembar',
+    'Kantong Sambal' => 'pcs',
+    'Kertas Ayam' => 'lembar',
+];
+
 $outletNames = [
     'outlet 1' => 'Pusat',
     'outlet 2' => 'Indomaret',
@@ -166,7 +174,7 @@ function stokTotal($id, $rows)
                 </div>
 
                 <div class="text-xs text-gray-400 mt-1">
-                    {{ $item->satuan }}
+                    {{ $itemUnits[$item->nama] ?? $item->satuan }}
                 </div>
             </div>
         @endforeach
@@ -198,7 +206,7 @@ function stokTotal($id, $rows)
                 </div>
 
                 <div class="text-xs text-gray-400 mt-1">
-                    {{ $stockItem->satuan ?? 'stok' }}
+                    {{ $itemUnits[$stockItem->nama] ?? ($stockItem->satuan ?? 'stok') }}
                 </div>
             </div>
         @endforeach
