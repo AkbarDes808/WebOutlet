@@ -18,6 +18,7 @@ class OutletController extends Controller
             'Outlet 7' => 'Unsoed',
             'Outlet 8' => 'Outlet 8',
             'Outlet 9' => 'Outlet 9',
+            'Outlet 10' => 'Outlet 10',
         ]);
 
         return view('outlets.index', compact('outlets'));
