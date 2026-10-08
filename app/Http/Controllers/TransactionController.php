@@ -574,7 +574,11 @@ class TransactionController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($role !== 'admin') {
+        // Admin dan SPV dapat melihat seluruh transaksi.
+        // User outlet hanya boleh melihat transaksi outlet miliknya.
+        $isAdminOrSpv = in_array($role, ['admin', 'spv'], true);
+
+        if (!$isAdminOrSpv) {
             if (
                 !isset(
                     $this->outletMapping[
