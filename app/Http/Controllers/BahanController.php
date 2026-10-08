@@ -813,6 +813,16 @@ class BahanController extends Controller
                         now(),
                 ]);
 
+            DB::table('stock_adjustments')->insert([
+                'stock_item_id' => $stockItemId,
+                'outlet' => $namaOutlet,
+                'jumlah' => $jumlah,
+                'jenis' => 'Penambahan',
+                'user_id' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             /*
             |--------------------------------------------------------------------------
             | Hapus duplicate rows setelah digabung.
