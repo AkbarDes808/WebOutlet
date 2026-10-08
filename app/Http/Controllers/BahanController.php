@@ -126,6 +126,7 @@ class BahanController extends Controller
         'outlet 7' => 'Outlet 7',
         'outlet 8' => 'Outlet 8',
         'outlet 9' => 'Outlet 9',
+        'outlet 10' => 'Outlet 10',
     ];
 
     /*
@@ -139,8 +140,8 @@ class BahanController extends Controller
         $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
-        $isSpv = false;
-        $isAdminOrSpv = $isAdmin;
+        $isSpv = $role === 'spv';
+        $isAdminOrSpv = $isAdmin || $isSpv;
 
         $selectedOutlet = $this->resolveOutlet(
             $request,
@@ -290,8 +291,8 @@ class BahanController extends Controller
         $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
-        $isSpv = false;
-        $isAdminOrSpv = $isAdmin;
+        $isSpv = $role === 'spv';
+        $isAdminOrSpv = $isAdmin || $isSpv;
 
         if (
             !$isAdminOrSpv &&
@@ -997,8 +998,8 @@ class BahanController extends Controller
         $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
-        $isSpv = false;
-        $isAdminOrSpv = $isAdmin;
+        $isSpv = $role === 'spv';
+        $isAdminOrSpv = $isAdmin || $isSpv;
 
         if (
             !$isAdminOrSpv &&
