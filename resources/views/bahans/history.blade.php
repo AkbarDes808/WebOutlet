@@ -32,6 +32,9 @@
                                 'outlet 5' => 'Arca',
                                 'outlet 6' => 'Larangan',
                                 'outlet 7' => 'Unsoed',
+                                'outlet 8' => 'Event 1',
+                                'outlet 9' => 'Event 2',
+                                'outlet 10' => 'Event',
                             ];
                         @endphp
 
