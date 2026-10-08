@@ -111,6 +111,9 @@ class BahanController extends Controller
     'Outlet 5' => 'Arca',
     'Outlet 6' => 'Larangan',
     'Outlet 7' => 'Unsoed',
+        'Outlet 8' => 'Outlet 8',
+        'Outlet 9' => 'Outlet 9',
+        'Outlet 10' => 'Outlet 10',
     ];
 
     private array $outlets = [
