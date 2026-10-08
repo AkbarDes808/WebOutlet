@@ -42,6 +42,8 @@
                 <option value="outlet 7">Outlet 7</option>
                 <option value="outlet 8">Outlet 8</option>
                 <option value="outlet 9">Outlet 9</option>
+                <option value="outlet 10">Outlet 10</option>
+                <option value="SPV">SPV</option>
                 <option value="admin">Admin</option>
             </select>
             <x-input-error :messages="$errors->get('role')" class="mt-2" />
