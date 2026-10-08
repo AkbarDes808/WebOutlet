@@ -33,8 +33,15 @@
             <x-input-label for="role" value="Role" />
             <select name="role" id="role"
                 class="block mt-1 w-full border-gray-300 rounded-md shadow-sm">
-                <option value="outlet">Outlet</option>
-                <option value="SPV">SPV</option>
+                <option value="outlet 1">Outlet 1</option>
+                <option value="outlet 2">Outlet 2</option>
+                <option value="outlet 3">Outlet 3</option>
+                <option value="outlet 4">Outlet 4</option>
+                <option value="outlet 5">Outlet 5</option>
+                <option value="outlet 6">Outlet 6</option>
+                <option value="outlet 7">Outlet 7</option>
+                <option value="outlet 8">Outlet 8</option>
+                <option value="outlet 9">Outlet 9</option>
                 <option value="admin">Admin</option>
             </select>
             <x-input-error :messages="$errors->get('role')" class="mt-2" />
