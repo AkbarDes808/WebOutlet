@@ -182,7 +182,7 @@
                                     <div class="mt-1 text-xs text-gray-500">
                                         Total:
                                         <span class="font-semibold text-gray-700">
-                                            {{ number_format($total, 0, ',', '.') }}
+                                            {{ $item['total'] === null || !array_key_exists('total', $item) ? '-' : number_format($total, 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
