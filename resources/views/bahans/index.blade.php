@@ -13,6 +13,8 @@ $rows = [
 ];
 
 $newItems = $stockItems->whereIn('nama', [
+    'Saus Sambal Sachet',
+    'Cabe',
     'Saos Cabe',
     'Kertas Ayam',
     'Dus',
