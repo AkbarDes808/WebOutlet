@@ -155,7 +155,9 @@ function stokTotal($id, $rows)
         {{-- AYAM --}}
         @foreach($ayam as $item)
             @php
-                $stok = stokTotal($item->id, $totalSemuaOutlet);
+                $stok = $selectedOutlet === 'all'
+                    ? stokTotal($item->id, $totalSemuaOutlet)
+                    : stokOutlet($item->id, $stockOutletRows);
             @endphp
 
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
@@ -186,7 +188,9 @@ function stokTotal($id, $rows)
                     return strtolower(trim($item->nama)) === strtolower(trim($label));
                 });
                 $stok = $stockItem
-                    ? stokTotal($stockItem->id, $totalSemuaOutlet)
+                    ? ($selectedOutlet === 'all'
+                        ? stokTotal($stockItem->id, $totalSemuaOutlet)
+                        : stokOutlet($stockItem->id, $stockOutletRows))
                     : 0;
             @endphp
 
@@ -214,9 +218,9 @@ function stokTotal($id, $rows)
         {{-- 5 ITEM BARU --}}
         @foreach($newItems as $item)
             @php
-                $stok = $selectedOutlet
-                    ? stokOutlet($item->id, $stockOutletRows)
-                    : stokTotal($item->id, $totalSemuaOutlet);
+                $stok = $selectedOutlet === 'all'
+                    ? stokTotal($item->id, $totalSemuaOutlet)
+                    : stokOutlet($item->id, $stockOutletRows);
             @endphp
 
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
