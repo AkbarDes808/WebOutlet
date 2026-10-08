@@ -593,7 +593,7 @@ class BahanController extends Controller
                     ? 'Stok berhasil dihapus.'
                     : 'Stok berhasil diperbarui.'
             );
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             report($e);
             return back()->with('error', 'Gagal mengubah stok: ' . $e->getMessage());
         }
