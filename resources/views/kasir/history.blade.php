@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="mt-5 rounded-xl bg-gray-50 p-4">
                                 <div class="space-y-2 text-sm">
                                     <div class="flex justify-between gap-4 text-gray-600">
-                                        <span>Bayar</span>
+                                        <span>Jumlah Dibayar</span>
                                         <span class="font-medium">${rupiah(data.trx.payment_amount)}</span>
                                     </div>
 
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </div>
 
                                     <div class="mt-3 flex justify-between gap-4 border-t border-gray-200 pt-3">
-                                        <span class="font-bold text-gray-900">TOTAL</span>
+                                        <span class="font-bold text-gray-900">TOTAL PEMBAYARAN</span>
                                         <span class="font-bold text-red-600">${rupiah(data.trx.total)}</span>
                                     </div>
                                 </div>
