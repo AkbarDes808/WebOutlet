@@ -140,8 +140,7 @@
 
                                         @php
                                             $displayMenuName = match (strtolower(trim($menu->name))) {
-                                                'saus cabe', 'saus sambal sachet', 'saos cabe' => 'Saos Cabe',
-                                                'cabe' => 'Kantong Sambal',
+                                                'saus cabe', 'saus sambal sachet', 'saos cabe', 'cabe', 'sambel', 'sambal' => 'Kantong Sambal',
                                                 default => $menu->name,
                                             };
                                         @endphp
