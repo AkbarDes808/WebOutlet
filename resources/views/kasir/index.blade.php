@@ -102,61 +102,26 @@
         </div>
 
     @else
-
-        <input
-            type="hidden"
-            id="transaction-outlet"
-            name="outlet"
-            value="{{ $userOutlet }}"
-        >
-
+        <input type="hidden" id="transaction-outlet" name="outlet" value="{{ $userOutlet }}">
         <div class="px-3 pt-3 lg:px-6 lg:pt-4 shrink-0">
             <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center justify-between">
-
                 <div>
-                    <p class="text-xs text-gray-500">
-                        Outlet Transaksi
-                    </p>
-
-                    <p class="text-sm font-semibold text-gray-800">
-                        {{ $userOutlet ?? 'Outlet tidak diketahui' }}
-                    </p>
+                    <p class="text-xs text-gray-500">Outlet Transaksi</p>
+                    <p class="text-sm font-semibold text-gray-800">{{ $userOutlet ?? 'Outlet tidak diketahui' }}</p>
                 </div>
-
-                <span class="text-xl">
-                    🏪
-                </span>
-
+                <span class="text-xl">🏪</span>
             </div>
         </div>
-
-        <div class="px-3 pt-3 lg:px-6 lg:pt-4 shrink-0">
-            <div class="bg-white rounded-xl shadow-sm border p-4">
-
-                <label
-                    for="transaction-event"
-                    class="block text-sm font-semibold text-gray-700"
-                >
-                    Event
-                </label>
-
-                <input
-                    type="text"
-                    id="transaction-event"
-                    name="event"
-                    maxlength="255"
-                    placeholder="Opsional"
-                    class="w-full mt-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-
-                <p class="text-xs text-gray-500 mt-1">
-                    Isi jika transaksi berasal dari event tertentu.
-                </p>
-
-            </div>
-        </div>
-
     @endif
+
+    <div class="px-3 pt-3 lg:px-6 lg:pt-4 shrink-0">
+        <div class="bg-white rounded-xl shadow-sm border p-4">
+            <label for="transaction-event" class="block text-sm font-semibold text-gray-700">Event</label>
+            <input type="text" id="transaction-event" name="event" maxlength="255" placeholder="Opsional"
+                class="w-full mt-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Isi jika transaksi berasal dari event tertentu.</p>
+        </div>
+    </div>
 
     {{-- Main Content --}}
     <div class="p-3 lg:p-6 flex gap-3 flex-1 min-h-0 overflow-hidden">
@@ -183,7 +148,7 @@
                                     <div class="min-w-0">
 
                                         <div class="font-semibold text-sm text-gray-800 truncate">
-                                            {{ $menu->name }}
+                                            {{ $menu->name }}{{ $menu->name === 'Saus Cabe' ? ($menu->price > 0 ? ' (Berbayar)' : ' (Gratis)') : '' }}
                                         </div>
 
                                         <div class="text-xs text-blue-600 font-semibold mt-0.5">
