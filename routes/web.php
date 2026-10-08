@@ -12,6 +12,7 @@ use App\Http\Controllers\KasirController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ShiftClosingController;
 use App\Http\Controllers\DatabaseController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,7 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post(
     '/produksi/bumbu/use',
-    [MarinasiController::class, 'store']
+    [MarinasiController::class, 'storeOnlyItems']
     )->name('produksi.bumbu.use');
 
     Route::get('/marinasi/produksi', [MarinasiController::class, 'produksi'])
@@ -113,7 +114,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get(
     '/transactions/{id}/detail',
     [TransactionController::class, 'detail']
-    )->name('transactions.detail');
+    )->whereNumber('id')
+    ->name('transactions.detail');
 
     Route::get(
     '/transactions/{id}/receipt',
@@ -121,7 +123,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     );
 
     // Route Dashoard Database
-    Route::prefix('database')->group(function () {
+    Route::prefix('database')->middleware('admin')->group(function () {
 
         Route::get('/', [DatabaseController::class, 'index'])
             ->name('database.index');
