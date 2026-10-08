@@ -7,7 +7,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Migrasikan role lama sebelum constraint baru diterapkan.
+        // Lepas constraint lama terlebih dahulu agar role baru bisa diisi.
+        DB::statement("
+            ALTER TABLE users
+            DROP CONSTRAINT IF EXISTS users_role_check
+        ");
+
+        // Migrasikan role lama.
         DB::statement("
             UPDATE users
             SET role = 'outlet 8'
@@ -18,12 +24,6 @@ return new class extends Migration
             UPDATE users
             SET role = 'outlet 9'
             WHERE LOWER(TRIM(role)) IN ('event 2', 'event2', 'spv')
-        ");
-
-        // Hapus constraint role lama.
-        DB::statement("
-            ALTER TABLE users
-            DROP CONSTRAINT IF EXISTS users_role_check
         ");
 
         // Role resmi sekarang: Admin dan Outlet 1–9.
@@ -49,8 +49,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Data role lama tidak dapat dipulihkan 1:1 karena
-        // Event 2 dan SPV sama-sama dimigrasikan menjadi Outlet 9.
         DB::statement("
             ALTER TABLE users
             DROP CONSTRAINT IF EXISTS users_role_check
