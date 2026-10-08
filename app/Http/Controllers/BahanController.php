@@ -144,6 +144,11 @@ class BahanController extends Controller
 
         $stockItems = DB::table('stock_items')
             ->where('aktif', true)
+            ->whereNotIn('nama', [
+                'Tepung',
+                'Dus',
+                'Dus Chicken',
+            ])
             ->orderBy('id')
             ->get();
 
