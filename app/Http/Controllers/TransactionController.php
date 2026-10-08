@@ -749,6 +749,11 @@ class TransactionController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    public function receipt(int $id)
+    {
+        return $this->detail($id);
+    }
+
     public function detail(
         int $id
     ) {
