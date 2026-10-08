@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeModal() {
+        if (!overlay || !content) return;
         overlay.classList.add('hidden');
         overlay.classList.remove('flex');
         content.innerHTML = '';
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn) return;
 
         const id = btn.dataset.id;
+        if (!overlay || !content || !id) return;
 
         overlay.classList.remove('hidden');
         overlay.classList.add('flex');
@@ -27,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        const res = await fetch(`/transactions/${id}/detail`);
+        const res = await fetch('/transactions/' + id + '/detail');
+        if (!res.ok) throw new Error('Gagal mengambil detail transaksi.');
         const data = await res.json();
 
         let itemsHTML = '';
@@ -82,7 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
 
                         <div>
-                            Metode : ${data.trx.payment_method.toUpperCase()}
+                            Metode : ${String(data.trx.payment_method || '').toUpperCase()}
+                        </div>
+
+                        <div>
+                            Status : ${String(data.trx.status || 'paid').toLowerCase() === 'paid' ? 'Selesai' : 'Void'}
                         </div>
                     </div>
 
@@ -102,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
 
                         <div class="flex justify-between">
-                            <span>BAYAR</span>
+                            <span>JUMLAH DIBAYAR</span>
                             <span>${rupiah(data.trx.payment_amount)}</span>
                         </div>
 
