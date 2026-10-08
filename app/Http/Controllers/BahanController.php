@@ -1117,7 +1117,7 @@ class BahanController extends Controller
                     'type' =>
                         'usage',
                     'type_label' =>
-                        'Penggunaan',
+                        'Penggunaan POS',
                     'nama_outlet' =>
                         $this->displayOutletName($deduction->nama_outlet),
                     'order_number' =>
@@ -1188,7 +1188,7 @@ class BahanController extends Controller
             ->values()
             ->all();
 
-        $history = array_merge($penambahanHistory, array_values($penggunaanHistory), $adjustments);
+        $history = array_merge(array_values($penggunaanHistory), $adjustments);
 
         usort(
             $history,
