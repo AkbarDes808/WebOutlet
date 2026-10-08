@@ -180,8 +180,10 @@ class DashboardController extends Controller
         $legacyStok = 0;
 
         if ($selectedOutlet) {
+            $legacyNamaOutlet = $this->outletMapping[$selectedOutlet] ?? $selectedOutlet;
+
             $legacyBahan = Bahan::query()
-                ->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [$selectedOutlet])
+                ->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [strtolower(trim($legacyNamaOutlet))])
                 ->orderByDesc('id')
                 ->first();
 
@@ -501,7 +503,7 @@ class DashboardController extends Controller
             }
 
             if ($normalized === strtolower($displayName)) {
-                return $displayName;
+                return $role;
             }
         }
 
