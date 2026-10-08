@@ -180,7 +180,7 @@ function confirmKeluar() {
         @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv']) || str_starts_with(strtolower(trim(Auth::user()->role ?? '')), 'outlet '))
 
             <a
-                href="{{ route('bahans.index') }}
+                href="{{ route('stok.index') }}"
                 class="
                     flex items-center gap-3
                     px-4 py-3
@@ -193,7 +193,7 @@ function confirmKeluar() {
                 "
             >
 
-                @if(request()->routeIs('bahans.index') || request()->routeIs('bahans.create'))
+                @if(request()->routeIs('bahans.index') || request()->routeIs('bahans.create') || request()->routeIs('stok.index'))
                     <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
                 @endif
 
@@ -240,7 +240,7 @@ function confirmKeluar() {
         @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv']) || str_starts_with(strtolower(trim(Auth::user()->role ?? '')), 'outlet '))
 
             <a
-                href="{{ route('bahans.history') }}
+                href="{{ route('stok.history') }}"
                 class="
                     flex items-center gap-3
                     px-4 py-3
@@ -253,7 +253,7 @@ function confirmKeluar() {
                 "
             >
 
-                @if(request()->routeIs('bahans.history'))
+                @if(request()->routeIs('bahans.history') || request()->routeIs('stok.history'))
                     <span class="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r"></span>
                 @endif
 
