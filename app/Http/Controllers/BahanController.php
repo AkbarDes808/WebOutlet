@@ -36,7 +36,7 @@ class BahanController extends Controller
         'tepung_roti' => 'Tepung Roti',
         'tepung_bumbu' => 'Tepung Bumbu',
         'garam' => 'Garam',
-        'bubuk_cabe' => 'Cabe',
+        'bubuk_cabe' => 'Kantong Sambal',
         'telur' => 'Telur',
         'gula' => 'Gula',
         'ayam' => 'Ayam',
@@ -77,10 +77,10 @@ class BahanController extends Controller
         5 => 'Teh Kotak',
         6 => 'Kotak',
         7 => 'Nasi',
-        8 => 'Saus Sambal Sachet',
+        8 => 'Saos Cabe',
         9 => 'Saus Tomat Sachet',
         10 => 'Tepung',
-        11 => 'Cabe',
+        11 => 'Kantong Sambal',
         12 => 'Ayam',
     ];
 
