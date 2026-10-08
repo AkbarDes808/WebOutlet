@@ -176,7 +176,7 @@
                     class="w-full bg-black text-white py-3 rounded-lg
                     hover:bg-gray-800 transition"
                 >
-                    Simpan Lapisan
+                    Simpan Lapis
                 </button>
             </div>
         </form>
