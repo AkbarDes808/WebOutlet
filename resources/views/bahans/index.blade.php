@@ -170,7 +170,12 @@ function stokTotal($id, $rows)
         {{-- BAHAN --}}
         @foreach($rows as $key => $label)
             @php
-                $stok = $totalStok->$key ?? 0;
+                $stockItem = $stockItems->first(function ($item) use ($label) {
+                    return strtolower(trim($item->nama)) === strtolower(trim($label));
+                });
+                $stok = $stockItem
+                    ? stokTotal($stockItem->id, $totalSemuaOutlet)
+                    : 0;
             @endphp
 
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
@@ -189,7 +194,7 @@ function stokTotal($id, $rows)
                 </div>
 
                 <div class="text-xs text-gray-400 mt-1">
-                    stok
+                    {{ $stockItem->satuan ?? 'stok' }}
                 </div>
             </div>
         @endforeach
