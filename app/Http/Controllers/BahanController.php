@@ -146,7 +146,6 @@ class BahanController extends Controller
             ->where('aktif', true)
             ->whereNotIn('nama', [
                 'Tepung',
-                'Dus',
                 'Dus Chicken',
             ])
             ->orderBy('id')
