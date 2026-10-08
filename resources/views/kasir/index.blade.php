@@ -148,7 +148,7 @@
                                     <div class="min-w-0">
 
                                         <div class="font-semibold text-sm text-gray-800 truncate">
-                                            {{ $menu->name }}
+                                            {{ $menu->name }}{{ $menu->name === 'Saus Cabe' ? ($menu->price > 0 ? ' (Berbayar)' : ' (Gratis)') : '' }}
                                         </div>
 
                                         <div class="text-xs text-blue-600 font-semibold mt-0.5">
