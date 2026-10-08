@@ -248,53 +248,37 @@
 
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
 
-                <table class="min-w-full text-sm text-left">
+                @forelse($dashboardStockItems as $item)
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 mb-3">
+                            {{ $item->kategori === 'Bagian Ayam' ? '🍗' : '📦' }}
+                        </div>
 
-                    <thead class="bg-gray-100 uppercase">
-                        <tr>
-                            <th class="px-4 py-3">Bahan</th>
-                            <th class="px-4 py-3">Satuan</th>
-                            <th class="px-4 py-3 text-right">Sisa Stok</th>
-                        </tr>
-                    </thead>
+                        <div class="text-xs text-gray-500">
+                            {{ $item->kategori }}
+                        </div>
 
-                    <tbody class="divide-y">
+                        <div class="font-semibold text-gray-800 mt-1">
+                            {{ $item->nama }}
+                        </div>
 
-                        @forelse($dashboardStockItems as $item)
+                        <div class="text-2xl font-bold text-gray-900 mt-3">
+                            {{ formatAngka($item->stok ?? 0) }}
+                        </div>
 
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 font-medium">
-                                    {{ $item->nama }}
-                                </td>
+                        <div class="text-xs text-gray-400 mt-1">
+                            {{ $item->satuan ?? 'pcs' }}
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-span-full p-4 text-center text-gray-500">
+                        Tidak ada data stok.
+                    </div>
+                @endforelse
 
-                                <td class="px-4 py-3 text-gray-500">
-                                    {{ $item->satuan ?? 'pcs' }}
-                                </td>
-
-                                <td class="px-4 py-3 text-right font-semibold">
-                                    {{ formatAngka($item->stok ?? 0) }}
-                                </td>
-                            </tr>
-
-                        @empty
-
-                            <tr>
-                                <td colspan="3" class="p-4 text-center text-gray-500">
-                                    Tidak ada data stok.
-                                </td>
-                            </tr>
-
-                        @endforelse
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
+            </div>        </div>
 
     </div>
 
