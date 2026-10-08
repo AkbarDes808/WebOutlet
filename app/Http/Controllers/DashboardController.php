@@ -173,29 +173,51 @@ class DashboardController extends Controller
             }
         }
 
-        $dashboardItems = collect();
+        /*
+        |--------------------------------------------------------------------------
+        | DASHBOARD STOCK
+        |--------------------------------------------------------------------------
+        | Tampilkan seluruh stock item aktif yang benar-benar ada di
+        | stock_items. Nilai stok selalu berasal dari stock_item_outlets.
+        | Item legacy/hilang tidak lagi dibuat sebagai data palsu.
+        |--------------------------------------------------------------------------
+        */
+        $hiddenDashboardItems = [
+            'tepung roti',
+            'tepung bumbu',
+            'bubuk cabe',
+            'telur',
+            'gula',
+            'cup',
+            'kertas chicken kecil',
+            'kertas chicken sedang',
+            'kertas chicken besar',
+            'dus chicken',
+            'dus chicken jumbo',
+            'plastik cup isi 1',
+            'plastik cup isi 2',
+        ];
 
-        foreach ($this->dashboardItems as $name) {
-
-            /*
-            * Semua stok Dashboard sekarang mengambil sumber utama
-            * dari stock_items + stock_item_outlets agar selalu
-            * sama dengan stok aktual di Inventory.
-            */
-            $normalizedName = $this->normalizeName($name);
-            $lookupName = $this->stockNameAliases[$normalizedName] ?? $normalizedName;
-
-            $stockItem = $stockItemsByName->get($lookupName);
-
-            if ($stockItem) {
-
+        $dashboardItems = $stockItems
+            ->filter(function ($stockItem) use ($hiddenDashboardItems) {
+                return !in_array(
+                    $this->normalizeName($stockItem->nama),
+                    $hiddenDashboardItems,
+                    true
+                );
+            })
+            ->map(function ($stockItem) use (
+                $selectedOutlet,
+                $totalStok,
+                $totalSemuaOutlet
+            ) {
                 $stockId = $stockItem->id;
 
                 $selectedStock = $selectedOutlet
                     ? (float) ($totalStok[$stockId] ?? 0)
                     : (float) ($totalSemuaOutlet[$stockId] ?? 0);
 
-                $dashboardItems->push((object) [
+                return (object) [
                     'id' => $stockId,
                     'nama' => $stockItem->nama,
                     'satuan' => $stockItem->satuan ?? null,
@@ -203,25 +225,9 @@ class DashboardController extends Controller
                     'source' => 'stock_items',
                     'stock_item_id' => $stockId,
                     'legacy_field' => null,
-                ]);
-
-                continue;
-            }
-
-
-            /*
-            * Jika tidak ditemukan di stock_items maupun bahans.
-            */
-            $dashboardItems->push((object) [
-                'id' => null,
-                'nama' => $name,
-                'satuan' => null,
-                'stok' => 0,
-                'source' => 'unknown',
-                'stock_item_id' => null,
-                'legacy_field' => null,
-            ]);
-        }
+                ];
+            })
+            ->values();
 
         return [
             'stockItems' => $stockItems,
