@@ -39,7 +39,7 @@
 
     $otherItems = [
         'tepung' => 'Tepung',
-        'teh' => 'Teh',
+        'teh' => 'Teh Kotak',
         'beras' => 'Beras',
         'plastik_sedang' => 'Plastik Sedang',
         'dus_chicken' => 'Dus Chicken',
