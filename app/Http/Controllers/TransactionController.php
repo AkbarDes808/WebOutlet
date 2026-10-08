@@ -749,6 +749,11 @@ class TransactionController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    public function receipt(int $id)
+    {
+        return $this->detail($id);
+    }
+
     public function detail(
         int $id
     ) {
@@ -768,6 +773,7 @@ class TransactionController extends Controller
                     'transactions.nama_outlet',
                     'transactions.event',
                     'transactions.payment_method',
+                    'transactions.status',
                     'transactions.total',
                     'transactions.payment_amount',
                     'transactions.change_amount',
@@ -812,6 +818,9 @@ class TransactionController extends Controller
 
                 'payment_method' =>
                     $trx->payment_method,
+
+                'status' =>
+                    $trx->status,
 
                 'kasir_name' =>
                     $trx->kasir_name,

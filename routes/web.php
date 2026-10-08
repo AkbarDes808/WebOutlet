@@ -12,6 +12,7 @@ use App\Http\Controllers\KasirController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ShiftClosingController;
 use App\Http\Controllers\DatabaseController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,9 +55,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route untuk Menu Outlet
     Route::get('/outlets', [OutletController::class, 'index'])->name('outlets.index');
 
-    // Route untuk fitur Marinasi
-    Route::get('/marinasi', [MarinasiController::class, 'index'])
-        ->name('marinasi.index');
+    // Fitur Marinasi hanya untuk admin
+    Route::middleware('admin')->group(function () {
+        Route::get('/marinasi', [MarinasiController::class, 'index'])
+            ->name('marinasi.index');
+    });
 
     // Route untuk kasir
     Route::get('/kasir', [KasirController::class, 'index'])
@@ -71,26 +74,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('kasir.history')
         ->middleware('auth');
         
-    Route::post(
-        '/produksi/marinasi/use',
-        [MarinasiController::class, 'storeOnlyItems']
-    )->name('produksi.marinasi.use');
+    Route::middleware('admin')->group(function () {
+        Route::post(
+            '/produksi/marinasi/use',
+            [MarinasiController::class, 'storeOnlyItems']
+        )->name('produksi.marinasi.use');
 
-    Route::post(
-    '/produksi/bumbu/use',
-    [MarinasiController::class, 'store']
-    )->name('produksi.bumbu.use');
+        Route::post(
+            '/produksi/bumbu/use',
+            [MarinasiController::class, 'storeOnlyItems']
+        )->name('produksi.bumbu.use');
 
-    Route::get('/marinasi/produksi', [MarinasiController::class, 'produksi'])
-    ->name('marinasi.produksi');
+        Route::get('/marinasi/produksi', [MarinasiController::class, 'produksi'])
+            ->name('marinasi.produksi');
 
-    Route::post('/marinasi/produksi/marinasi',
-    [MarinasiController::class, 'submitMarinasi']
-    )->name('produksi.marinasi.submit');
+        Route::post('/marinasi/produksi/marinasi',
+            [MarinasiController::class, 'submitMarinasi']
+        )->name('produksi.marinasi.submit');
 
-    Route::post('/marinasi/produksi/lapis',
-        [MarinasiController::class, 'submitLapis']
-    )->name('produksi.lapis.submit');
+        Route::post('/marinasi/produksi/lapis',
+            [MarinasiController::class, 'submitLapis']
+        )->name('produksi.lapis.submit');
+    });
 
     Route::get('/tutup-shift', [ShiftClosingController::class, 'index'])
         ->name('shift.index');
@@ -113,7 +118,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get(
     '/transactions/{id}/detail',
     [TransactionController::class, 'detail']
-    )->name('transactions.detail');
+    )->whereNumber('id')
+    ->name('transactions.detail');
 
     Route::get(
     '/transactions/{id}/receipt',
@@ -121,7 +127,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     );
 
     // Route Dashoard Database
-    Route::prefix('database')->group(function () {
+    Route::prefix('database')->middleware('admin')->group(function () {
 
         Route::get('/', [DatabaseController::class, 'index'])
             ->name('database.index');

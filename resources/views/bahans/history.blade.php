@@ -127,9 +127,7 @@
                                     <th class="px-5 py-3 text-right font-semibold text-gray-600">
                                         Perubahan
                                     </th>
-                                    <th class="px-5 py-3 text-right font-semibold text-gray-600">
-                                        Total
-                                    </th>
+                                    <th class="px-5 py-3 text-right font-semibold text-gray-600">Sisa Stok</th>
                                 </tr>
                             </thead>
 
@@ -160,7 +158,7 @@
                                         </td>
 
                                         <td class="px-5 py-3 text-right font-bold text-gray-900">
-                                            {{ number_format($total, 0, ',', '.') }}
+                                            {{ $item['total'] === null || !array_key_exists('total', $item) ? '-' : number_format($total, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 @endforeach
@@ -184,7 +182,7 @@
                                     <div class="mt-1 text-xs text-gray-500">
                                         Total:
                                         <span class="font-semibold text-gray-700">
-                                            {{ number_format($total, 0, ',', '.') }}
+                                            {{ $item['total'] === null || !array_key_exists('total', $item) ? '-' : number_format($total, 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
