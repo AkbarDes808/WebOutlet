@@ -69,8 +69,13 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        $activeTab = $request->input('tab', 'inventory');
+        $activeTab = 'inventory';
         $user = Auth::user();
+
+        $request->validate([
+            'start_date' => ['nullable', 'date_format:Y-m-d'],
+            'end_date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
 
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
@@ -107,21 +112,13 @@ class DashboardController extends Controller
             'dashboardItems' => collect(),
         ];
 
-        if ($activeTab === 'inventory') {
-            $inventoryData = $this->getInventoryData($filterOutlet);
+        $inventoryData = $this->getInventoryData($filterOutlet);
 
-            $viewData['stockItems'] = $inventoryData['stockItems'];
-            $viewData['stockOutletRows'] = $inventoryData['stockOutletRows'];
-            $viewData['totalStok'] = $inventoryData['totalStok'];
-            $viewData['totalSemuaOutlet'] = $inventoryData['totalSemuaOutlet'];
-            $viewData['dashboardItems'] = $inventoryData['dashboardItems'];
-        } else {
-            $viewData['history'] = $this->getHistory(
-                $filterOutlet,
-                $startDate,
-                $endDate
-            );
-        }
+        $viewData['stockItems'] = $inventoryData['stockItems'];
+        $viewData['stockOutletRows'] = $inventoryData['stockOutletRows'];
+        $viewData['totalStok'] = $inventoryData['totalStok'];
+        $viewData['totalSemuaOutlet'] = $inventoryData['totalSemuaOutlet'];
+        $viewData['dashboardItems'] = $inventoryData['dashboardItems'];
 
         return view('dashboard', $viewData);
     }
@@ -150,7 +147,7 @@ class DashboardController extends Controller
                     [$selectedOutlet]
                 )
                 ->get()
-                ->keyBy('stock_item_id');
+                ->groupBy('stock_item_id');
         }
 
         $allOutletStocks = DB::table('stock_item_outlets')
@@ -166,9 +163,9 @@ class DashboardController extends Controller
             $totalStok[$stockId] = 0;
 
             if ($stockOutletRows->has($stockId)) {
-                $totalStok[$stockId] = (float) (
-                    $stockOutletRows->get($stockId)->stok ?? 0
-                );
+                $totalStok[$stockId] = $stockOutletRows
+                    ->get($stockId)
+                    ->sum(fn ($row) => (float) ($row->stok ?? 0));
             }
 
             $totalSemuaOutlet[$stockId] = 0;

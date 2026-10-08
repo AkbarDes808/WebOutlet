@@ -68,7 +68,7 @@ class MarinasiController extends Controller
             ? 'Bumbu Tepung Marinasi'
             : 'Bumbu Tepung Lapis';
 
-        $marinasiId = random_int(100000, 999999);
+        $marinasiId = $this->generateMarinasiId();
 
         foreach ($items as $kode => $jumlah) {
 
@@ -105,7 +105,7 @@ class MarinasiController extends Controller
     public function submitMarinasi(Request $request)
     {
         $request->validate([
-            'jumlah_ayam' => 'required|numeric|min:1500'
+            'jumlah_ayam' => ['required', 'integer', 'in:1500,3000'],
         ]);
 
         $jumlahAyam = $request->jumlah_ayam;
@@ -137,6 +137,20 @@ class MarinasiController extends Controller
                 ? 'Marinasi & Lapis ' . $kode
                 : 'Marinasi ' . $kode;
 
+            $dibutuhkan = (float) ($gram * $batch);
+            $tersedia = (float) DB::table('marinasi_items')
+                ->where('bahan', $namaBahan)
+                ->sum('total');
+
+            if ($tersedia < $dibutuhkan) {
+                throw new \RuntimeException(
+                    'Stok ' . $namaBahan . ' tidak mencukupi. Tersedia: ' .
+                    number_format($tersedia, 2, ',', '.') .
+                    ' gr, dibutuhkan: ' .
+                    number_format($dibutuhkan, 2, ',', '.') . ' gr.'
+                );
+            }
+
             DB::table('marinasi_items')->insert([
                 'marinasi_id' => $marinasiId,
                 'bahan'  => $namaBahan,
@@ -161,7 +175,7 @@ class MarinasiController extends Controller
     public function submitLapis(Request $request)
     {
         $request->validate([
-            'jumlah_karung' => 'required|numeric|min:25'
+            'jumlah_karung' => ['required', 'integer', 'in:25,50'],
         ]);
 
         $jumlahKg = $request->jumlah_karung;
@@ -188,6 +202,20 @@ class MarinasiController extends Controller
                 ? 'Marinasi & Lapis ' . $kode
                 : 'Lapis ' . $kode;
 
+            $dibutuhkan = (float) ($gram * $batch);
+            $tersedia = (float) DB::table('marinasi_items')
+                ->where('bahan', $namaBahan)
+                ->sum('total');
+
+            if ($tersedia < $dibutuhkan) {
+                throw new \RuntimeException(
+                    'Stok ' . $namaBahan . ' tidak mencukupi. Tersedia: ' .
+                    number_format($tersedia, 2, ',', '.') .
+                    ' gr, dibutuhkan: ' .
+                    number_format($dibutuhkan, 2, ',', '.') . ' gr.'
+                );
+            }
+
             DB::table('marinasi_items')->insert([
                 'marinasi_id' => $marinasiId,
                 'bahan'  => $namaBahan,
@@ -202,5 +230,14 @@ class MarinasiController extends Controller
         }
 
         return redirect()->back()->with('success', 'Produksi Lapis berhasil disimpan');
+    }
+
+    private function generateMarinasiId(): int
+    {
+        do {
+            $id = random_int(100000, 999999);
+        } while (DB::table('marinasi_items')->where('marinasi_id', $id)->exists());
+
+        return $id;
     }
 }

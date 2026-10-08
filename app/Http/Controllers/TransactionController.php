@@ -150,6 +150,22 @@ class TransactionController extends Controller
             $total =
                 $subtotal + $tax;
 
+            $allowedPaymentMethods = ['cash', 'qris'];
+            $paymentMethod = strtolower(trim((string) $paymentMethod));
+
+            if (!in_array($paymentMethod, $allowedPaymentMethods, true)) {
+                throw new \Exception('Metode pembayaran tidak valid.');
+            }
+
+            if ($paymentAmount < $total) {
+                throw new \Exception(
+                    'Pembayaran kurang. Total: Rp ' .
+                    number_format($total, 0, ',', '.') .
+                    ', dibayar: Rp ' .
+                    number_format($paymentAmount, 0, ',', '.') . '.'
+                );
+            }
+
             /*
             |--------------------------------------------------------------------------
             | CODE TRANSACTION
@@ -623,6 +639,11 @@ class TransactionController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
         if (
             $request->filled('from')
         ) {
@@ -729,7 +750,7 @@ class TransactionController extends Controller
     */
 
     public function detail(
-        $id
+        int $id
     ) {
         $trx =
             DB::table(
