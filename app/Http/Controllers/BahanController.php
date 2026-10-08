@@ -1018,23 +1018,37 @@ class BahanController extends Controller
     {
         $role = $this->getUserRole();
 
+        // Normalisasi nama Event lama ke role outlet canonical.
+        $roleAliases = [
+            'event 1' => 'outlet 8',
+            'event 2' => 'outlet 9',
+            'event' => 'outlet 10',
+        ];
+
+        $role = $roleAliases[$role] ?? $role;
+
         $isAdmin = $role === 'admin';
         $isSpv = $role === 'spv';
         $isAdminOrSpv = $isAdmin || $isSpv;
 
         if (
             !$isAdminOrSpv &&
-            !str_contains($role, 'outlet')
+            !str_starts_with($role, 'outlet ')
         ) {
             abort(403);
         }
 
-        $selectedOutlet =
-            $this->resolveOutlet(
+        // User outlet WAJIB dikunci ke outlet miliknya.
+        // Request ?outlet=... tidak boleh mengubah filter outlet.
+        if (!$isAdminOrSpv) {
+            $selectedOutlet = $role;
+        } else {
+            $selectedOutlet = $this->resolveOutlet(
                 $request,
                 $role,
                 $isAdminOrSpv
             );
+        }
 
         $namaOutlet = $selectedOutlet === 'all' ? null : $this->outletMapping[$selectedOutlet];
         $namaOutletDisplay = $selectedOutlet === 'all'
