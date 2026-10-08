@@ -286,8 +286,8 @@ class BahanController extends Controller
         $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
-        $isSpv = $role === 'spv';
-        $isAdminOrSpv = $isAdmin || $isSpv;
+        $isSpv = false;
+        $isAdminOrSpv = $isAdmin;
 
         if (
             !$isAdminOrSpv &&
@@ -993,8 +993,8 @@ class BahanController extends Controller
         $role = $this->getUserRole();
 
         $isAdmin = $role === 'admin';
-        $isSpv = $role === 'spv';
-        $isAdminOrSpv = $isAdmin || $isSpv;
+        $isSpv = false;
+        $isAdminOrSpv = $isAdmin;
 
         if (
             !$isAdminOrSpv &&
