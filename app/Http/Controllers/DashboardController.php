@@ -41,6 +41,8 @@ class DashboardController extends Controller
         'outlet 5' => 'Outlet 5',
         'outlet 6' => 'Outlet 6',
         'outlet 7' => 'Outlet 7',
+        'outlet 8' => 'Outlet 8',
+        'outlet 9' => 'Outlet 9',
     ];
 
     private array $dashboardItems = [
