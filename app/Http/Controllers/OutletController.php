@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Bahan; // Pastikan model Bahan di-import
 use Illuminate\Http\Request;
 
 class OutletController extends Controller
 {
-    /**
-     * Menampilkan halaman menu utama yang berisi daftar semua outlet.
-     */
     public function index()
     {
-        // Ambil semua nama outlet yang unik dari tabel 'bahans'
-        $outlets = Bahan::select('nama_outlet')->distinct()->pluck('nama_outlet');
+        $outlets = collect([
+            'Outlet 1' => 'Pusat',
+            'Outlet 2' => 'Indomaret',
+            'Outlet 3' => 'Bunderan',
+            'Outlet 4' => 'Mersi',
+            'Outlet 5' => 'Arca',
+            'Outlet 6' => 'Larangan',
+            'Outlet 7' => 'Unsoed',
+        ]);
 
-        // Kirim data outlets ke view
         return view('outlets.index', compact('outlets'));
     }
 }
