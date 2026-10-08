@@ -114,15 +114,6 @@
         </div>
     @endif
 
-    <div class="px-3 pt-3 lg:px-6 lg:pt-4 shrink-0">
-        <div class="bg-white rounded-xl shadow-sm border p-4">
-            <label for="transaction-event" class="block text-sm font-semibold text-gray-700">Event</label>
-            <input type="text" id="transaction-event" name="event" maxlength="255" placeholder="Opsional"
-                class="w-full mt-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <p class="text-xs text-gray-500 mt-1">Isi jika transaksi berasal dari event tertentu.</p>
-        </div>
-    </div>
-
     {{-- Main Content --}}
     <div class="p-3 lg:p-6 flex gap-3 flex-1 min-h-0 overflow-hidden">
 
@@ -147,8 +138,16 @@
 
                                     <div class="min-w-0">
 
+                                        @php
+                                            $displayMenuName = match (strtolower(trim($menu->name))) {
+                                                'saus cabe', 'saus sambal sachet', 'saos cabe' => 'Saos Cabe',
+                                                'cabe' => 'Kantong Sambal',
+                                                default => $menu->name,
+                                            };
+                                        @endphp
+
                                         <div class="font-semibold text-sm text-gray-800 truncate">
-                                            {{ $menu->name }}{{ $menu->name === 'Saus Cabe' ? ($menu->price > 0 ? ' (Berbayar)' : ' (Gratis)') : '' }}
+                                            {{ $displayMenuName }}
                                         </div>
 
                                         <div class="text-xs text-blue-600 font-semibold mt-0.5">
