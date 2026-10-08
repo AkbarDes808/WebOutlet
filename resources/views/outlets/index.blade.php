@@ -10,7 +10,7 @@
     @if($outlets->isNotEmpty())
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {{-- Loop untuk setiap outlet yang ada --}}
-            @foreach($outlets as $outlet)
+            @foreach($outlets as $outlet => $namaOutlet)
                 {{-- Setiap outlet adalah link ke halaman kalkulator bahan --}}
                 <a href="{{ route('bahans.index', ['outlet' => $outlet]) }}" 
                    class="block p-4 sm:p-6 bg-white border rounded-lg text-center font-semibold text-gray-700 shadow-sm hover:bg-gray-100 hover:shadow-md transition-all duration-200">
@@ -20,7 +20,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.25a.75.75 0 01-.75-.75v-7.5a.75.75 0 01.75-.75h3.75m-4.5 0v-7.5a.75.75 0 01.75-.75h3.75m0-3V3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V5.25m-3.75 0h3.75m-3.75 0a.75.75 0 01.75-.75h2.25a.75.75 0 01.75.75M3 13.5h18M3 7.5h18" />
                     </svg>
 
-                    <span>{{ $outlet }}</span>
+                    <span>{{ $namaOutlet }}</span>
                 </a>
             @endforeach
         </div>
