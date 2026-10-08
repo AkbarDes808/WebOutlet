@@ -129,13 +129,11 @@ function stokTotal($id, $rows)
     <div class="flex items-center justify-between mb-3">
         <div>
             <h2 class="text-lg font-semibold text-gray-800">
-                {{ $selectedOutlet ? 'Stok Saat Ini' : 'Total Semua Outlet' }}
+                Total Semua Outlet
             </h2>
 
             <p class="text-xs text-gray-500">
-                {{ $selectedOutlet
-                    ? 'Jumlah stok pada outlet yang dipilih.'
-                    : 'Jumlah stok gabungan seluruh outlet.' }}
+                Jumlah stok gabungan seluruh outlet.
             </p>
         </div>
     </div>
@@ -145,9 +143,7 @@ function stokTotal($id, $rows)
         {{-- AYAM --}}
         @foreach($ayam as $item)
             @php
-                $stok = $selectedOutlet
-                    ? stokOutlet($item->id, $stockOutletRows)
-                    : stokTotal($item->id, $totalSemuaOutlet);
+                $stok = stokTotal($item->id, $totalSemuaOutlet);
             @endphp
 
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
@@ -174,9 +170,7 @@ function stokTotal($id, $rows)
         {{-- BAHAN --}}
         @foreach($rows as $key => $label)
             @php
-                $stok = $selectedOutlet
-                    ? ($bahan->$key ?? 0)
-                    : ($totalStok->$key ?? 0);
+                $stok = $totalStok->$key ?? 0;
             @endphp
 
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
