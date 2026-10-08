@@ -30,41 +30,16 @@
     $selectedOutlet = $selectedOutlet ?? request('outlet');
     $displayOutlet = $selectedOutlet ?: 'Semua Outlet';
 
-    $chickenNames = [
-        'ayam - sayap',
-        'ayam - paha bawah',
-        'ayam - dada',
-        'ayam - paha atas',
-    ];
+    $dashboardStockItems = collect($dashboardItems ?? []);
+    
+    $getStock = function ($id) use ($totalStok, $totalSemuaOutlet, $selectedOutlet) {
+        $source = $selectedOutlet ? ($totalStok ?? []) : ($totalSemuaOutlet ?? []);
+        if (is_array($source)) {
+            return $source[$id] ?? 0;
+        }
 
-    $otherItems = [
-        'tepung' => 'Tepung',
-        'teh' => 'Teh Kotak',
-        'beras' => 'Beras',
-        'plastik_sedang' => 'Plastik Sedang',
-        'dus_chicken' => 'Dus Chicken',
-    ];
-
-    $chickenStockItems = collect();
-
-    if (isset($stockItems)) {
-        $chickenStockItems = collect($stockItems)
-            ->filter(function ($stockItem) use ($chickenNames) {
-                return in_array(
-                    strtolower(trim($stockItem->nama ?? '')),
-                    $chickenNames,
-                    true
-                );
-            })
-            ->sortBy(function ($stockItem) use ($chickenNames) {
-                return array_search(
-                    strtolower(trim($stockItem->nama ?? '')),
-                    $chickenNames
-                );
-            })
-            ->values();
-    }
-
+        return 0;
+    };
     $getStock = function ($id) use ($totalStok, $totalSemuaOutlet, $selectedOutlet) {
         $source = $selectedOutlet ? ($totalStok ?? []) : ($totalSemuaOutlet ?? []);
         if (is_array($source)) {
@@ -278,113 +253,40 @@
                 <table class="min-w-full text-sm text-left">
 
                     <thead class="bg-gray-100 uppercase">
-
                         <tr>
-
-                            <th class="px-4 py-3">
-                                Bahan
-                            </th>
-
-                            <th class="px-4 py-3">
-                                Satuan
-                            </th>
-
-                            <th class="px-4 py-3 text-right">
-                                Sisa Stok
-                            </th>
-
+                            <th class="px-4 py-3">Bahan</th>
+                            <th class="px-4 py-3">Satuan</th>
+                            <th class="px-4 py-3 text-right">Sisa Stok</th>
                         </tr>
-
                     </thead>
 
                     <tbody class="divide-y">
 
-                        @if($chickenStockItems->count() > 0)
-
-                            @foreach($chickenStockItems as $chicken)
-
-                                <tr class="hover:bg-gray-50">
-
-                                    <td class="px-4 py-3 font-medium">
-                                        {{ $chicken->nama }}
-                                    </td>
-
-                                    <td class="px-4 py-3 text-gray-500">
-                                        {{ $chicken->satuan ?? 'pcs' }}
-                                    </td>
-
-                                    <td class="px-4 py-3 text-right font-semibold">
-                                        {{ formatAngka($getStock($chicken->id)) }}
-                                    </td>
-
-                                </tr>
-
-                            @endforeach
-
-                        @endif
-
-                        @foreach($otherItems as $key => $label)
-
-                            @php
-                                $stok = 0;
-
-                                $legacyIds = [
-                    'tepung' => 10,
-                    'teh' => 5,
-                    'beras' => 7,
-                    'plastik_sedang' => 21,
-                    'dus_chicken' => 19,
-                ];
-                $stockId = $legacyIds[$key] ?? null;
-                if ($stockId !== null) {
-                    $source = $selectedOutlet ? ($totalStok ?? []) : ($totalSemuaOutlet ?? []);
-                    $stok = is_array($source) ? ($source[$stockId] ?? 0) : 0;
-                }
-
-                                $satuan = match ($key) {
-                                    'garam' => 'gram',
-                                    'tepung' => 'gram',
-                                    'teh' => 'kotak',
-                                    'beras' => 'porsi',
-                                    'plastik_sedang' => 'pcs',
-                                    'dus_chicken' => 'pcs',
-                                    'dus_chicken_jumbo' => 'pcs',
-                                    default => '-',
-                                };
-                            @endphp
+                        @forelse($dashboardStockItems as $item)
 
                             <tr class="hover:bg-gray-50">
-
                                 <td class="px-4 py-3 font-medium">
-                                    {{ $label }}
+                                    {{ $item->nama }}
                                 </td>
 
                                 <td class="px-4 py-3 text-gray-500">
-                                    {{ $satuan }}
+                                    {{ $item->satuan ?? 'pcs' }}
                                 </td>
 
                                 <td class="px-4 py-3 text-right font-semibold">
-                                    {{ formatAngka($stok) }}
+                                    {{ formatAngka($item->stok ?? 0) }}
                                 </td>
-
                             </tr>
 
-                        @endforeach
-
-                        @if($chickenStockItems->count() === 0 && count($otherItems) === 0)
+                        @empty
 
                             <tr>
-
-                                <td
-                                    colspan="3"
-                                    class="p-4 text-center text-gray-500"
-                                >
+                                <td colspan="3" class="p-4 text-center text-gray-500">
                                     Tidak ada data stok.
                                 </td>
-
                             </tr>
 
-                        @endif
+                        @endforelse
 
                     </tbody>
 
