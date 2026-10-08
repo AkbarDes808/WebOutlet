@@ -23,9 +23,8 @@
     ];
 
     $userOutlet = $outletMap[$role] ?? null;
-    $transactionOutlet = $userOutlet ?? request('outlet');
 
-    $outletNames = [
+    $outletDisplayNames = [
         'Outlet 1' => 'Pusat',
         'Outlet 2' => 'Indomaret',
         'Outlet 3' => 'Bunderan',
@@ -37,6 +36,11 @@
         'Outlet 9' => 'Event 2',
         'Outlet 10' => 'Event',
     ];
+
+    $transactionOutlet = $userOutlet ?? request('outlet');
+    $transactionOutletName = $outletDisplayNames[$transactionOutlet] ?? $transactionOutlet;
+
+    $outletNames = $outletDisplayNames;
 
     $menuGroups = $menus->groupBy(
         fn($menu) => $menu->category ?: 'Menu Utama'
@@ -120,7 +124,7 @@
             <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500">Outlet Transaksi</p>
-                    <p class="text-sm font-semibold text-gray-800">{{ $userOutlet ?? 'Outlet tidak diketahui' }}</p>
+                    <p class="text-sm font-semibold text-gray-800">{{ $transactionOutletName ?? 'Outlet tidak diketahui' }}</p>
                 </div>
                 <span class="text-xl">🏪</span>
             </div>
