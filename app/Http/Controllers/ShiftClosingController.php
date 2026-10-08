@@ -13,8 +13,8 @@ class ShiftClosingController extends Controller
     {
         $role = strtolower(trim($user->role));
 
-        // Admin dan SPV merekap seluruh outlet.
-        if (in_array($role, ['admin', 'spv'], true)) {
+        // Hanya Admin yang merekap seluruh outlet.
+        if ($role === 'admin') {
             return 'all';
         }
 
@@ -25,7 +25,7 @@ class ShiftClosingController extends Controller
     {
         $query = Transaction::whereDate('created_at', $today);
 
-        // Admin dan SPV melihat seluruh transaksi dari semua outlet.
+        // Admin melihat seluruh transaksi dari semua outlet.
         if ($outlet !== 'all') {
             $query->whereRaw(
                 'LOWER(TRIM(nama_outlet)) = ?',
@@ -215,7 +215,7 @@ class ShiftClosingController extends Controller
 
         $query = ShiftClosing::query();
 
-        if (!in_array(strtolower($user->role), ['admin', 'spv'])) {
+        if (strtolower($user->role) !== 'admin') {
             $query->where(
                 'outlet',
                 $this->getOutlet($user)
