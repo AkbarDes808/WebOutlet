@@ -44,27 +44,21 @@ class DashboardController extends Controller
     ];
 
     private array $dashboardItems = [
-        'Ayam - Sayap',
-        'Ayam - Paha Bawah',
-        'Ayam - Dada',
-        'Ayam - Paha Atas',
-        'Garam',
+        'Ayam',
         'Tepung',
-        'Teh',
-        'Beras',
+        'Teh Kotak',
+        'Nasi',
         'Plastik Sedang',
-        'Dus Chicken',
-        'Dus Chicken Jumbo',
+        'Dus',
     ];
 
-    private array $legacyFieldMapping = [
-        'Garam' => 'garam',
-        'Tepung' => 'tepung',
-        'Teh' => 'teh',
-        'Beras' => 'beras',
-        'Plastik Sedang' => 'plastik_sedang',
-        'Dus Chicken' => 'dus_chicken',
-        'Dus Chicken Jumbo' => 'dus_chicken_jumbo',
+    private array $stockNameAliases = [
+        'teh' => 'teh kotak',
+        'beras' => 'nasi',
+        'dus chicken' => 'dus',
+        'saus cabe' => 'saos cabe',
+        'saus sambal sachet' => 'saos cabe',
+        'cabe' => 'kantong sambal',
     ];
 
     public function index(Request $request)
@@ -179,45 +173,19 @@ class DashboardController extends Controller
             }
         }
 
-        $legacyStocks = $this->getLegacyStocks(
-            $filterOutlet
-        );
-
         $dashboardItems = collect();
 
         foreach ($this->dashboardItems as $name) {
 
             /*
-            * ITEM LEGACY
-            * Stok untuk item berikut masih menggunakan tabel bahans.
-            * Harus menggunakan sumber yang sama dengan History.
-            */
-            if (isset($this->legacyFieldMapping[$name])) {
-
-                $legacyValue = $legacyStocks[$name] ?? 0;
-
-                $dashboardItems->push((object) [
-                    'id' => null,
-                    'nama' => $name,
-                    'satuan' => null,
-                    'stok' => (float) $legacyValue,
-                    'source' => 'bahans',
-                    'stock_item_id' => null,
-                    'legacy_field' => $this->legacyFieldMapping[$name],
-                ]);
-
-                continue;
-            }
-
-
-            /*
-            * ITEM BARU
-            * Item yang tidak menggunakan sistem legacy
-            * tetap mengambil stok dari stock_items.
+            * Semua stok Dashboard sekarang mengambil sumber utama
+            * dari stock_items + stock_item_outlets agar selalu
+            * sama dengan stok aktual di Inventory.
             */
             $normalizedName = $this->normalizeName($name);
+            $lookupName = $this->stockNameAliases[$normalizedName] ?? $normalizedName;
 
-            $stockItem = $stockItemsByName->get($normalizedName);
+            $stockItem = $stockItemsByName->get($lookupName);
 
             if ($stockItem) {
 
