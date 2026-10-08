@@ -182,20 +182,11 @@ class DashboardController extends Controller
         | Item legacy/hilang tidak lagi dibuat sebagai data palsu.
         |--------------------------------------------------------------------------
         */
+        // Samakan daftar item Dashboard dengan halaman Stok.
+        // Halaman Stok menyembunyikan Tepung dan Dus Chicken.
         $hiddenDashboardItems = [
-            'tepung roti',
-            'tepung bumbu',
-            'bubuk cabe',
-            'telur',
-            'gula',
-            'cup',
-            'kertas chicken kecil',
-            'kertas chicken sedang',
-            'kertas chicken besar',
+            'tepung',
             'dus chicken',
-            'dus chicken jumbo',
-            'plastik cup isi 1',
-            'plastik cup isi 2',
         ];
 
         $dashboardItems = $stockItems
