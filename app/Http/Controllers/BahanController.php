@@ -1433,6 +1433,7 @@ class BahanController extends Controller
         string $role,
         bool $isAdminOrSpv
     ): string {
+        // Admin/SPV dapat melihat semua atau memilih outlet.
         if ($isAdminOrSpv) {
             $selectedOutlet =
                 strtolower(
@@ -1460,18 +1461,14 @@ class BahanController extends Controller
             return $selectedOutlet;
         }
 
-        if (!str_contains(
-            $role,
-            'outlet'
-        )) {
+        // Kasir/outlet selalu menggunakan role canonical:
+        // outlet 1 ... outlet 10.
+        // Nama Event/Event 1/Event 2 hanya untuk tampilan.
+        if (!str_starts_with($role, 'outlet ')) {
             abort(403);
         }
 
-        if (
-            !isset(
-                $this->outletMapping[$role]
-            )
-        ) {
+        if (!isset($this->outletMapping[$role])) {
             abort(403);
         }
 
