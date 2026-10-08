@@ -140,7 +140,7 @@ class BahanController extends Controller
             $isAdminOrSpv
         );
 
-        $namaOutlet = $this->outletMapping[$selectedOutlet];
+        $namaOutlet = $selectedOutlet === 'all' ? 'Semua Outlet' : $this->outletMapping[$selectedOutlet];
 
         $stockItems = DB::table('stock_items')
             ->where('aktif', true)
@@ -154,10 +154,9 @@ class BahanController extends Controller
         */
 
         $stockOutletRows = DB::table('stock_item_outlets')
-            ->whereRaw(
-                'LOWER(TRIM(outlet)) = ?',
-                [$selectedOutlet]
-            )
+            ->when($selectedOutlet !== 'all', function ($query) use ($selectedOutlet) {
+                $query->whereRaw('LOWER(TRIM(outlet)) = ?', [$selectedOutlet]);
+            })
             ->orderBy('id')
             ->get()
             ->groupBy('stock_item_id');
@@ -207,6 +206,15 @@ class BahanController extends Controller
             }
         }
 
+        if ($selectedOutlet === 'all') {
+            $legacyRows = Bahan::query()->get();
+            $legacyTotal = [];
+            foreach ($this->rows as $field) {
+                $legacyTotal[$field] = (float) $legacyRows->sum(fn ($row) => (float) ($row->{$field} ?? 0));
+            }
+            $totalStok = (object) $legacyTotal;
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Legacy Bahan
@@ -252,6 +260,11 @@ class BahanController extends Controller
             'totalStok' => $totalStok,
             'totalSemuaOutlet' => $totalSemuaOutlet,
         ]);
+    }
+
+    public function create()
+    {
+        return redirect()->route('bahans.index');
     }
 
     /*
@@ -732,16 +745,21 @@ class BahanController extends Controller
                 DB::table(
                     'stock_item_outlets'
                 )->insert([
-                    'stock_item_id' =>
-                        $stockItemId,
-                    'outlet' =>
-                        $namaOutlet,
-                    'stok' =>
-                        $jumlah,
-                    'created_at' =>
-                        now(),
-                    'updated_at' =>
-                        now(),
+                    'stock_item_id' => $stockItemId,
+                    'outlet' => $namaOutlet,
+                    'stok' => $jumlah,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('stock_adjustments')->insert([
+                    'stock_item_id' => $stockItemId,
+                    'outlet' => $namaOutlet,
+                    'jumlah' => $jumlah,
+                    'jenis' => 'Penambahan',
+                    'user_id' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 continue;
@@ -937,21 +955,22 @@ class BahanController extends Controller
 
             if ($rows->count() > 1) {
                 $duplicateIds =
-                    $rows
-                        ->skip(1)
-                        ->pluck('id')
-                        ->values()
-                        ->all();
+                    $rows->skip(1)->pluck('id')->values()->all();
 
-                DB::table(
-                    'stock_item_outlets'
-                )
-                    ->whereIn(
-                        'id',
-                        $duplicateIds
-                    )
+                DB::table('stock_item_outlets')
+                    ->whereIn('id', $duplicateIds)
                     ->delete();
             }
+
+            DB::table('stock_adjustments')->insert([
+                'stock_item_id' => $stockItemId,
+                'outlet' => $namaOutlet,
+                'jumlah' => $jumlah,
+                'jenis' => 'Penambahan',
+                'user_id' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 
@@ -983,13 +1002,10 @@ class BahanController extends Controller
                 $isAdminOrSpv
             );
 
-        $namaOutlet =
-            $this->outletMapping[
-                $selectedOutlet
-            ];
-        $namaOutletDisplay =
-                $this->outletDisplayNames[$namaOutlet]
-                ?? $namaOutlet;
+        $namaOutlet = $selectedOutlet === 'all' ? null : $this->outletMapping[$selectedOutlet];
+        $namaOutletDisplay = $selectedOutlet === 'all'
+            ? 'Semua Outlet'
+            : ($this->outletDisplayNames[$namaOutlet] ?? $namaOutlet);
 
         /*
         |--------------------------------------------------------------------------
@@ -997,10 +1013,8 @@ class BahanController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $bahanHistory = Bahan::whereRaw(
-            'LOWER(TRIM(nama_outlet)) = ?',
-            [strtolower($namaOutlet)]
-        )
+        $bahanHistory = Bahan::query()
+            ->when($namaOutlet, fn ($q) => $q->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [strtolower($namaOutlet)]))
             ->orderBy('id', 'asc')
             ->get();
 
@@ -1096,10 +1110,7 @@ class BahanController extends Controller
                 '=',
                 'sd.transaction_id'
             )
-            ->whereRaw(
-                'LOWER(TRIM(t.nama_outlet)) = ?',
-                [strtolower($namaOutlet)]
-            )
+            ->when($namaOutlet, fn ($q) => $q->whereRaw('LOWER(TRIM(t.nama_outlet)) = ?', [strtolower($namaOutlet)]))
             ->select([
                 'sd.id',
                 'sd.transaction_id',
@@ -1171,12 +1182,30 @@ class BahanController extends Controller
             ];
         }
 
-        $history = array_merge(
-            $penambahanHistory,
-            array_values(
-                $penggunaanHistory
-            )
-        );
+        $adjustments = DB::table('stock_adjustments as sa')
+            ->join('stock_items as si', 'si.id', '=', 'sa.stock_item_id')
+            ->leftJoin('users as u', 'u.id', '=', 'sa.user_id')
+            ->when($namaOutlet, fn ($q) => $q->whereRaw('LOWER(TRIM(sa.outlet)) = ?', [strtolower($namaOutlet)]))
+            ->select('sa.id', 'sa.outlet', 'sa.jumlah', 'sa.jenis', 'sa.created_at', 'si.nama as stock_item', 'u.name as nama_user')
+            ->orderByDesc('sa.created_at')
+            ->get()
+            ->map(fn ($row) => [
+                'id' => 'adjustment-' . $row->id,
+                'type' => 'input',
+                'type_label' => $row->jenis,
+                'nama_outlet' => $this->displayOutletName($row->outlet),
+                'created_at' => $row->created_at,
+                'updated_at' => $row->created_at,
+                'items' => [[
+                    'nama' => $row->stock_item,
+                    'item' => $row->stock_item,
+                    'field' => null,
+                    'change' => (float) $row->jumlah,
+                    'total' => null,
+                ]],
+            ])->all();
+
+        $history = array_merge($penambahanHistory, array_values($penggunaanHistory), $adjustments);
 
         usort(
             $history,
@@ -1211,13 +1240,8 @@ class BahanController extends Controller
             ->orderBy('id')
             ->get();
 
-        $stockOutletRows = DB::table(
-            'stock_item_outlets'
-        )
-            ->whereRaw(
-                'LOWER(TRIM(outlet)) = ?',
-                [$selectedOutlet]
-            )
+        $stockOutletRows = DB::table('stock_item_outlets')
+            ->when($selectedOutlet !== 'all', fn ($q) => $q->whereRaw('LOWER(TRIM(outlet)) = ?', [$selectedOutlet]))
             ->orderBy('id')
             ->get()
             ->groupBy('stock_item_id');
@@ -1323,12 +1347,13 @@ class BahanController extends Controller
                 strtolower(
                     trim(
                         (string)
-                        $request->input(
-                            'outlet',
-                            'outlet 1'
-                        )
+                        $request->input('outlet', '')
                     )
                 );
+
+            if ($selectedOutlet === '') {
+                return 'all';
+            }
 
             if (
                 !isset(
@@ -1367,6 +1392,12 @@ class BahanController extends Controller
     | FORMAT NUMBER
     |--------------------------------------------------------------------------
     */
+
+    private function displayOutletName(?string $outlet): string
+    {
+        if (!$outlet) return '-';
+        return $this->outletDisplayNames[$outlet] ?? $outlet;
+    }
 
     private function formatNumber(
         float $number
