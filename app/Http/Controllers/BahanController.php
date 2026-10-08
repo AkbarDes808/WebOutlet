@@ -254,6 +254,11 @@ class BahanController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        return redirect()->route('bahans.index');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | STORE
@@ -1323,12 +1328,13 @@ class BahanController extends Controller
                 strtolower(
                     trim(
                         (string)
-                        $request->input(
-                            'outlet',
-                            'outlet 1'
-                        )
+                        $request->input('outlet', '')
                     )
                 );
+
+            if ($selectedOutlet === '') {
+                return 'all';
+            }
 
             if (
                 !isset(
