@@ -140,7 +140,7 @@ class BahanController extends Controller
             $isAdminOrSpv
         );
 
-        $namaOutlet = $this->outletMapping[$selectedOutlet];
+        $namaOutlet = $selectedOutlet === 'all' ? 'Semua Outlet' : $this->outletMapping[$selectedOutlet];
 
         $stockItems = DB::table('stock_items')
             ->where('aktif', true)
@@ -154,10 +154,9 @@ class BahanController extends Controller
         */
 
         $stockOutletRows = DB::table('stock_item_outlets')
-            ->whereRaw(
-                'LOWER(TRIM(outlet)) = ?',
-                [$selectedOutlet]
-            )
+            ->when($selectedOutlet !== 'all', function ($query) use ($selectedOutlet) {
+                $query->whereRaw('LOWER(TRIM(outlet)) = ?', [$selectedOutlet]);
+            })
             ->orderBy('id')
             ->get()
             ->groupBy('stock_item_id');
@@ -205,6 +204,15 @@ class BahanController extends Controller
                         (float) $row->stok;
                 }
             }
+        }
+
+        if ($selectedOutlet === 'all') {
+            $legacyRows = Bahan::query()->get();
+            $legacyTotal = [];
+            foreach ($this->rows as $field) {
+                $legacyTotal[$field] = (float) $legacyRows->sum(fn ($row) => (float) ($row->{$field} ?? 0));
+            }
+            $totalStok = (object) $legacyTotal;
         }
 
         /*
