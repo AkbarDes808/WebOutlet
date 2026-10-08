@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                                     <div>
                                         <div class="text-xs text-gray-400">Status</div>
-                                        <div class="mt-1 font-semibold text-gray-800">${data.trx.status ?? 'paid'}</div>
+                                        <div class="mt-1 font-semibold text-gray-800">${String(data.trx.status || 'paid').toLowerCase() === 'paid' ? 'Selesai' : 'Void'}</div>
                                     </div>
                                 </div>
                             </div>
