@@ -186,7 +186,7 @@ function confirmKeluar() {
                     px-4 py-3
                     rounded-lg
                     relative
-                    {{ request()->routeIs('bahans.index') || request()->routeIs('bahans.create')
+                    {{ request()->routeIs('bahans.index') || request()->routeIs('bahans.create') || request()->routeIs('stok.index')
                         ? 'bg-blue-50 text-blue-600 font-semibold'
                         : 'text-gray-600 hover:bg-gray-200'
                     }}
@@ -246,7 +246,7 @@ function confirmKeluar() {
                     px-4 py-3
                     rounded-lg
                     relative
-                    {{ request()->routeIs('bahans.history')
+                    {{ request()->routeIs('bahans.history') || request()->routeIs('stok.history')
                         ? 'bg-blue-50 text-blue-600 font-semibold'
                         : 'text-gray-600 hover:bg-gray-200'
                     }}
