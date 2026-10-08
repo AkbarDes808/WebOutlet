@@ -73,6 +73,14 @@
                 @php
                     $items = $record['items'] ?? [];
                     $isUsage = ($record['type'] ?? '') === 'usage';
+
+                    $itemUnits = [
+                        'Ayam' => 'ekor',
+                        'Kotak' => 'pcs',
+                        'Plastik Sedang' => 'lembar',
+                        'Kantong Sambal' => 'pcs',
+                        'Kertas Ayam' => 'lembar',
+                    ];
                 @endphp
 
                 <div class="overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -143,7 +151,7 @@
 
                                     <tr>
                                         <td class="px-5 py-3 font-medium text-gray-800">
-                                            {{ $item['nama'] }}
+                                            {{ $item['nama'] }}@if(isset($itemUnits[$item['nama']])) <span class="text-gray-500">({{ $itemUnits[$item['nama']] }})</span>@endif
                                         </td>
 
                                         <td class="px-5 py-3 text-right">
