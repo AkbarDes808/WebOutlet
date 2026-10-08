@@ -1290,6 +1290,57 @@ class BahanController extends Controller
             ] = $rows->first();
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | SISA STOK REAL-TIME
+        |
+        | Nilai Sisa Stok pada history harus selalu mengambil
+        | kondisi terakhir dari stock_item_outlets, bukan
+        | snapshot stok saat history dibuat.
+        |--------------------------------------------------------------------------
+        */
+
+        $currentStockByName = [];
+
+        foreach ($stockItems as $stockItem) {
+            $currentStockByName[
+                strtolower(trim($stockItem->nama))
+            ] = (float) (
+                $totalStok[$stockItem->id] ?? 0
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Alias nama lama -> nama stok aktif
+        |--------------------------------------------------------------------------
+        */
+
+        $stockNameAliases = [
+            'saus sambal sachet' => 'saos cabe',
+            'saus cabe' => 'saos cabe',
+            'cabe' => 'kantong sambal',
+        ];
+
+        foreach ($history as &$record) {
+            foreach ($record['items'] as &$item) {
+                $historyName = strtolower(
+                    trim((string) ($item['nama'] ?? ''))
+                );
+
+                $lookupName =
+                    $stockNameAliases[$historyName]
+                    ?? $historyName;
+
+                if (array_key_exists($lookupName, $currentStockByName)) {
+                    $item['total'] =
+                        $currentStockByName[$lookupName];
+                }
+            }
+        }
+
+        unset($record, $item);
+
         return view(
             'bahans.history',
             [
