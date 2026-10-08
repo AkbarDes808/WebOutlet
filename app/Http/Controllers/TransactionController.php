@@ -23,6 +23,8 @@ class TransactionController extends Controller
         'outlet 5' => 'Outlet 5',
         'outlet 6' => 'Outlet 6',
         'outlet 7' => 'Outlet 7',
+        'outlet 8' => 'Outlet 8',
+        'outlet 9' => 'Outlet 9',
     ];
 
     /*
@@ -213,10 +215,7 @@ class TransactionController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            if (
-                $role === 'admin' ||
-                $role === 'spv'
-            ) {
+            if ($role === 'admin') {
                 $requestedOutlet =
                     strtolower(
                         trim(
@@ -574,10 +573,7 @@ class TransactionController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (
-            $role !== 'admin' &&
-            $role !== 'spv'
-        ) {
+        if ($role !== 'admin') {
             if (
                 !isset(
                     $this->outletMapping[
