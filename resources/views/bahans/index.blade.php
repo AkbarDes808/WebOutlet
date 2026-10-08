@@ -156,7 +156,7 @@ function stokTotal($id, $rows)
                 <div class="text-xs text-gray-500">Bagian Ayam</div>
 
                 <div class="font-semibold text-gray-800 mt-1">
-                    {{ $item->nama }}{{ $item->nama === 'Plastik Sedang' && $item->kategori === 'Menu Gratis' ? ' (Gratis)' : '' }}
+                    {{ $item->nama }}
                 </div>
 
                 <div class="text-2xl font-bold text-gray-900 mt-3">
@@ -343,7 +343,7 @@ function stokTotal($id, $rows)
                                     for="stock_item_{{ $item->id }}"
                                     class="text-sm font-medium text-gray-700"
                                 >
-                                    {{ $item->nama }}
+                                    {{ $item->nama }}{{ $item->nama === 'Plastik Sedang' && $item->kategori === 'Menu Gratis' ? ' (Gratis)' : '' }}
                                 </label>
 
                                 <div class="text-xs text-gray-400 mt-0.5">
