@@ -6,10 +6,8 @@
 $isOutlet = preg_match('/^outlet\s\d+$/i', trim(Auth::user()->role));
 
 $rows = [
-    'tepung' => 'Tepung',
     'teh' => 'Teh Kotak',
     'plastik_sedang' => 'Plastik Sedang',
-    'dus_chicken' => 'Dus Chicken',
 ];
 
 $newItems = $stockItems->whereIn('nama', [
