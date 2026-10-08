@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,8 +24,8 @@
         class="h-16 mx-auto mb-4"
     >
 
-    <h1 class="text-3xl font-bold text-gray-800">Welcome back!</h1>
-    <p class="text-gray-500 mt-2">Log in to continue</p>
+    <h1 class="text-3xl font-bold text-gray-800">Selamat datang kembali!</h1>
+    <p class="text-gray-500 mt-2">Masuk untuk melanjutkan</p>
 </div>
 
 
@@ -33,7 +33,7 @@
                     {{-- Menampilkan error validasi umum --}}
                     @if ($errors->any())
                         <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
-                            <strong class="font-bold">Oops!</strong>
+                            <strong class="font-bold">Terjadi kesalahan.</strong>
                             <span class="block sm:inline">{{ $errors->first() }}</span>
                         </div>
                     @endif
@@ -47,7 +47,7 @@
                             <div class="mt-1">
                                 <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                       placeholder="you@example.com">
+                                       placeholder="nama@email.com">
                             </div>
                         </div>
 
@@ -60,7 +60,7 @@
                                     type="password"
                                     required
                                     class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Enter your password"
+                                    placeholder="Masukkan password"
                                 >
 
                                 <button
