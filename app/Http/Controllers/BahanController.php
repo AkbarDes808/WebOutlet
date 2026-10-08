@@ -1057,6 +1057,75 @@ class BahanController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | HISTORY PENAMBAHAN LEGACY
+        |
+        | Tetap tampilkan history dari tabel Bahan untuk data lama.
+        | Jika sudah ada stock_adjustments pada timestamp + outlet yang sama,
+        | legacy record tidak ditampilkan agar tidak terjadi duplikasi.
+        |--------------------------------------------------------------------------
+        */
+
+        $bahanHistory = Bahan::query()
+            ->when(
+                $namaOutlet,
+                fn ($q) => $q->whereRaw(
+                    'LOWER(TRIM(nama_outlet)) = ?',
+                    [strtolower($namaOutlet)]
+                )
+            )
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $penambahanHistory = [];
+        $previousByOutlet = [];
+
+        foreach ($bahanHistory as $current) {
+            $outletKey = strtolower(trim((string) $current->nama_outlet));
+            $items = [];
+
+            foreach ($this->historyLabels as $field => $label) {
+                $currentValue = (float) ($current->{$field} ?? 0);
+
+                if (!isset($previousByOutlet[$outletKey])) {
+                    $change = $currentValue;
+                } else {
+                    $previousValue = (float) (
+                        $previousByOutlet[$outletKey]->{$field} ?? 0
+                    );
+                    $change = $currentValue - $previousValue;
+                }
+
+                if ($change <= 0) {
+                    continue;
+                }
+
+                $items[] = [
+                    'nama' => $label,
+                    'item' => $label,
+                    'field' => $field,
+                    'change' => $change,
+                    'total' => $currentValue,
+                ];
+            }
+
+            if (!empty($items)) {
+                $penambahanHistory[] = [
+                    'id' => 'legacy-' . $current->id,
+                    'type' => 'input',
+                    'type_label' => 'Penambahan',
+                    'nama_outlet' => $this->displayOutletName($current->nama_outlet),
+                    'outlet_key' => $outletKey,
+                    'created_at' => $current->created_at,
+                    'updated_at' => $current->updated_at,
+                    'items' => $items,
+                ];
+            }
+
+            $previousByOutlet[$outletKey] = $current;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | HISTORY PENGGUNAAN / KASIR
         |--------------------------------------------------------------------------
         */
@@ -1188,7 +1257,44 @@ class BahanController extends Controller
             ->values()
             ->all();
 
-        $history = array_merge(array_values($penggunaanHistory), $adjustments);
+        /*
+        |--------------------------------------------------------------------------
+        | Hapus legacy card yang sudah mempunyai stock_adjustments.
+        | Sumber baru menjadi stock_adjustments, sedangkan legacy hanya
+        | dipakai untuk history lama yang belum tercatat di sana.
+        |--------------------------------------------------------------------------
+        */
+
+        $adjustmentKeys = [];
+
+        foreach ($adjustments as $adjustment) {
+            $adjustmentKeys[
+                strtolower(trim((string) $adjustment['nama_outlet']))
+                . '|' . (string) $adjustment['created_at']
+            ] = true;
+        }
+
+        $penambahanHistory = array_values(array_filter(
+            $penambahanHistory,
+            function ($record) use ($adjustmentKeys) {
+                $key =
+                    strtolower(trim((string) $record['nama_outlet']))
+                    . '|' . (string) $record['created_at'];
+
+                return !isset($adjustmentKeys[$key]);
+            }
+        ));
+
+        foreach ($penambahanHistory as &$record) {
+            unset($record['outlet_key']);
+        }
+        unset($record);
+
+        $history = array_merge(
+            $penambahanHistory,
+            array_values($penggunaanHistory),
+            $adjustments
+        );
 
         usort(
             $history,
