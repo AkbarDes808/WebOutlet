@@ -46,11 +46,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Route untuk fitur Bahan (Inventory)
     Route::get('/bahans', [BahanController::class, 'index'])->name('bahans.index');
+    Route::get('/stok', [BahanController::class, 'index'])->name('stok.index');
     Route::get('/bahans/create', [BahanController::class, 'create'])->name('bahans.create');
     Route::post('/bahans', [BahanController::class, 'store'])->name('bahans.store');
 
     // Route untuk fitur History
     Route::get('/history', [BahanController::class, 'history'])->name('bahans.history');
+    Route::get('/riwayat-stok', [BahanController::class, 'history'])->name('stok.history');
 
     // Route untuk Menu Outlet
     Route::get('/outlets', [OutletController::class, 'index'])->name('outlets.index');
