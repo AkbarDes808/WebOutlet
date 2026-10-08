@@ -65,9 +65,10 @@
             ->values();
     }
 
-    $getStock = function ($id) use ($totalStok) {
-        if (is_array($totalStok ?? null)) {
-            return $totalStok[$id] ?? 0;
+    $getStock = function ($id) use ($totalStok, $totalSemuaOutlet, $selectedOutlet) {
+        $source = $selectedOutlet ? ($totalStok ?? []) : ($totalSemuaOutlet ?? []);
+        if (is_array($source)) {
+            return $source[$id] ?? 0;
         }
 
         if (is_object($totalStok ?? null)) {
@@ -327,13 +328,18 @@
                             @php
                                 $stok = 0;
 
-                                if (isset($totalStok)) {
-                                    if (is_array($totalStok)) {
-                                        $stok = $totalStok[$key] ?? 0;
-                                    } elseif (is_object($totalStok)) {
-                                        $stok = $totalStok->{$key} ?? 0;
-                                    }
-                                }
+                                $legacyIds = [
+                    'tepung' => 10,
+                    'teh' => 5,
+                    'beras' => 7,
+                    'plastik_sedang' => 21,
+                    'dus_chicken' => 19,
+                ];
+                $stockId = $legacyIds[$key] ?? null;
+                if ($stockId !== null) {
+                    $source = $selectedOutlet ? ($totalStok ?? []) : ($totalSemuaOutlet ?? []);
+                    $stok = is_array($source) ? ($source[$stockId] ?? 0) : 0;
+                }
 
                                 $satuan = match ($key) {
                                     'garam' => 'gram',
