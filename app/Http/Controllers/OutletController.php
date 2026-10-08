@@ -16,8 +16,8 @@ class OutletController extends Controller
             'Outlet 5' => 'Arca',
             'Outlet 6' => 'Larangan',
             'Outlet 7' => 'Unsoed',
-            'Outlet 8' => 'Event 1',
-            'Outlet 9' => 'Event 2',
+            'Outlet 8' => 'Outlet 8',
+            'Outlet 9' => 'Outlet 9',
         ]);
 
         return view('outlets.index', compact('outlets'));
