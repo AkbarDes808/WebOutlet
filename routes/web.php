@@ -49,6 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/stok', [BahanController::class, 'index'])->name('stok.index');
     Route::get('/bahans/create', [BahanController::class, 'create'])->name('bahans.create');
     Route::post('/bahans', [BahanController::class, 'store'])->name('bahans.store');
+    Route::patch('/stok/{stockItem}', [BahanController::class, 'updateStock'])->whereNumber('stockItem')->name('stok.update');
+    Route::delete('/stok/{stockItem}', [BahanController::class, 'destroyStock'])->whereNumber('stockItem')->name('stok.destroy');
 
     // Route untuk fitur History
     Route::get('/history', [BahanController::class, 'history'])->name('bahans.history');
