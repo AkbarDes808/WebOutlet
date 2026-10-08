@@ -20,7 +20,7 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', 'in:admin,outlet 1,outlet 2,outlet 3,outlet 4,outlet 5,outlet 6,outlet 7,outlet 8,outlet 9'],
+            'role' => ['required', 'in:admin,SPV,outlet 1,outlet 2,outlet 3,outlet 4,outlet 5,outlet 6,outlet 7,outlet 8,outlet 9,outlet 10'],
         ]);
 
         User::create([
