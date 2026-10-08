@@ -290,13 +290,24 @@ class BahanController extends Controller
     {
         $role = $this->getUserRole();
 
+        // Event dapat tersimpan sebagai nama tampilan pada akun lama.
+        // Normalisasi kembali ke role canonical agar history tidak menjadi
+        // "Semua Outlet".
+        $roleAliases = [
+            'event 1' => 'outlet 8',
+            'event 2' => 'outlet 9',
+            'event' => 'outlet 10',
+        ];
+
+        $role = $roleAliases[$role] ?? $role;
+
         $isAdmin = $role === 'admin';
         $isSpv = $role === 'spv';
         $isAdminOrSpv = $isAdmin || $isSpv;
 
         if (
             !$isAdminOrSpv &&
-            !str_contains($role, 'outlet')
+            !str_starts_with($role, 'outlet ')
         ) {
             abort(403);
         }
