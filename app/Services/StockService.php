@@ -19,6 +19,7 @@ class StockService
         'outlet 7' => 'Outlet 7',
         'outlet 8' => 'Outlet 8',
         'outlet 9' => 'Outlet 9',
+        'outlet 10' => 'Outlet 10',
     ];
 
     /*
