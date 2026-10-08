@@ -177,7 +177,7 @@ function confirmKeluar() {
 
 
         {{-- INVENTORY ADMIN + SPV --}}
-        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'SPV')
+        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv'], true))
 
             <a
                 href="{{ route('bahans.index') }}"
@@ -207,7 +207,7 @@ function confirmKeluar() {
 
 
         {{-- MARINASI ADMIN --}}
-        @if(Auth::user()->role === 'admin')
+        @if(strtolower(trim(Auth::user()->role ?? '')) === 'admin')
 
             <a
                 href="{{ route('marinasi.index') }}"
@@ -237,7 +237,7 @@ function confirmKeluar() {
 
 
         {{-- HISTORY ADMIN + SPV --}}
-        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'SPV')
+        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv'], true))
 
             <a
                 href="{{ route('bahans.history') }}"
@@ -319,7 +319,7 @@ function confirmKeluar() {
 
 
         {{-- OUTLETS ADMIN + SPV --}}
-        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'SPV')
+        @if(in_array(strtolower(trim(Auth::user()->role ?? '')), ['admin', 'spv'], true))
 
             <a
                 href="{{ route('outlets.index') }}"
