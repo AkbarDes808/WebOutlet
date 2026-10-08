@@ -173,52 +173,64 @@ class DashboardController extends Controller
             }
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | DASHBOARD STOCK
-        |--------------------------------------------------------------------------
-        | Tampilkan seluruh stock item aktif yang benar-benar ada di
-        | stock_items. Nilai stok selalu berasal dari stock_item_outlets.
-        | Item legacy/hilang tidak lagi dibuat sebagai data palsu.
-        |--------------------------------------------------------------------------
-        */
-        // Samakan daftar item Dashboard dengan halaman Stok.
-        // Halaman Stok menyembunyikan Tepung dan Dus Chicken.
-        $hiddenDashboardItems = [
-            'tepung',
-            'dus chicken',
-        ];
+        // Dashboard mengikuti item yang ditampilkan pada halaman Stok.
+        $legacyStok = 0;
 
-        $dashboardItems = $stockItems
-            ->filter(function ($stockItem) use ($hiddenDashboardItems) {
-                return !in_array(
-                    $this->normalizeName($stockItem->nama),
-                    $hiddenDashboardItems,
-                    true
-                );
-            })
-            ->map(function ($stockItem) use (
-                $selectedOutlet,
-                $totalStok,
-                $totalSemuaOutlet
-            ) {
-                $stockId = $stockItem->id;
+        if ($selectedOutlet) {
+            $legacyBahan = Bahan::query()
+                ->whereRaw('LOWER(TRIM(nama_outlet)) = ?', [$selectedOutlet])
+                ->orderByDesc('id')
+                ->first();
 
-                $selectedStock = $selectedOutlet
-                    ? (float) ($totalStok[$stockId] ?? 0)
-                    : (float) ($totalSemuaOutlet[$stockId] ?? 0);
+            $legacyStok = (float) ($legacyBahan->plastik_sedang ?? 0);
+        } else {
+            $legacyStok = (float) Bahan::query()->sum('plastik_sedang');
+        }
 
+        $dashboardItems = collect([
+            'Ayam' => ['kategori' => 'Bagian Ayam'],
+            'Teh Kotak' => ['kategori' => 'Bahan'],
+            'Plastik Sedang' => ['kategori' => 'Bahan', 'legacy' => true],
+            'Kantong Sambal' => ['kategori' => 'Bahan'],
+            'Saos Cabe' => ['kategori' => 'Menu Tambahan'],
+            'Kertas Ayam' => ['kategori' => 'Menu Gratis'],
+            'Dus' => ['kategori' => 'Menu Gratis'],
+            'Plastik Kecil' => ['kategori' => 'Menu Gratis'],
+            'Plastik Sedang (Gratis)' => ['nama' => 'Plastik Sedang', 'kategori' => 'Menu Gratis'],
+        ])->map(function ($config, $key) use ($stockItems, $selectedOutlet, $totalStok, $totalSemuaOutlet, $legacyStok) {
+            $name = $config['nama'] ?? $key;
+
+            if (!empty($config['legacy'])) {
                 return (object) [
-                    'id' => $stockId,
-                    'nama' => $stockItem->nama,
-                    'satuan' => $stockItem->satuan ?? null,
-                    'stok' => $selectedStock,
-                    'source' => 'stock_items',
-                    'stock_item_id' => $stockId,
-                    'legacy_field' => null,
+                    'id' => null,
+                    'nama' => $name,
+                    'kategori' => $config['kategori'],
+                    'satuan' => 'stok',
+                    'stok' => $legacyStok,
                 ];
-            })
-            ->values();
+            }
+
+            $stockItem = $stockItems->first(
+                fn ($item) => $this->normalizeName($item->nama) === $this->normalizeName($name)
+            );
+
+            if (!$stockItem) {
+                return null;
+            }
+
+            $stockId = $stockItem->id;
+            $stok = $selectedOutlet
+                ? (float) ($totalStok[$stockId] ?? 0)
+                : (float) ($totalSemuaOutlet[$stockId] ?? 0);
+
+            return (object) [
+                'id' => $stockId,
+                'nama' => $name,
+                'kategori' => $config['kategori'],
+                'satuan' => $stockItem->satuan ?? 'pcs',
+                'stok' => $stok,
+            ];
+        })->filter()->values();
 
         return [
             'stockItems' => $stockItems,
