@@ -466,6 +466,141 @@ class BahanController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | UPDATE STOCK
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateStock(Request $request, int $stockItem)
+    {
+        return $this->setOutletStock($request, $stockItem, false);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE STOCK
+    |--------------------------------------------------------------------------
+    */
+
+    public function destroyStock(Request $request, int $stockItem)
+    {
+        return $this->setOutletStock($request, $stockItem, true);
+    }
+
+    private function setOutletStock(Request $request, int $stockItemId, bool $delete = false)
+    {
+        $role = $this->getUserRole();
+
+        $roleAliases = [
+            'event 1' => 'outlet 8',
+            'event 2' => 'outlet 9',
+            'event' => 'outlet 10',
+        ];
+
+        $role = $roleAliases[$role] ?? $role;
+
+        $isAdminOrSpv = in_array($role, ['admin', 'spv'], true);
+
+        if (!$isAdminOrSpv && !str_starts_with($role, 'outlet ')) {
+            abort(403);
+        }
+
+        $requestedOutlet = $isAdminOrSpv
+            ? strtolower(trim((string) $request->input('outlet', '')))
+            : $role;
+
+        if (!isset($this->outletMapping[$requestedOutlet])) {
+            abort(403);
+        }
+
+        $namaOutlet = $this->outletMapping[$requestedOutlet];
+
+        if (!$delete) {
+            $value = str_replace(',', '.', trim((string) $request->input('stok', '')));
+
+            if ($value === '' || !is_numeric($value) || (float) $value < 0) {
+                return back()->with('error', 'Jumlah stok tidak valid.');
+            }
+
+            $newStock = (float) $value;
+        } else {
+            $newStock = 0;
+        }
+
+        try {
+            DB::transaction(function () use ($stockItemId, $requestedOutlet, $namaOutlet, $newStock) {
+                $item = DB::table('stock_items')
+                    ->where('id', $stockItemId)
+                    ->where('aktif', true)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$item) {
+                    abort(404);
+                }
+
+                $rows = DB::table('stock_item_outlets')
+                    ->where('stock_item_id', $stockItemId)
+                    ->whereRaw('LOWER(TRIM(outlet)) = ?', [$requestedOutlet])
+                    ->lockForUpdate()
+                    ->get();
+
+                $oldStock = $rows->sum(fn ($row) => (float) $row->stok);
+
+                $canonical = $rows->first();
+
+                if ($canonical) {
+                    DB::table('stock_item_outlets')
+                        ->where('id', $canonical->id)
+                        ->update([
+                            'outlet' => $namaOutlet,
+                            'stok' => $newStock,
+                            'updated_at' => now(),
+                        ]);
+
+                    if ($rows->count() > 1) {
+                        DB::table('stock_item_outlets')
+                            ->whereIn('id', $rows->skip(1)->pluck('id')->all())
+                            ->delete();
+                    }
+                } else {
+                    DB::table('stock_item_outlets')->insert([
+                        'stock_item_id' => $stockItemId,
+                        'outlet' => $namaOutlet,
+                        'stok' => $newStock,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                $difference = $newStock - $oldStock;
+
+                if ($difference != 0) {
+                    DB::table('stock_adjustments')->insert([
+                        'stock_item_id' => $stockItemId,
+                        'outlet' => $namaOutlet,
+                        'jumlah' => abs($difference),
+                        'jenis' => $difference > 0 ? 'Penambahan' : 'Pengurangan',
+                        'user_id' => auth()->id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            });
+
+            return back()->with(
+                'success',
+                $delete
+                    ? 'Stok berhasil dihapus.'
+                    : 'Stok berhasil diperbarui.'
+            );
+        } catch (\\Throwable $e) {
+            report($e);
+            return back()->with('error', 'Gagal mengubah stok: ' . $e->getMessage());
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | PREPARE LEGACY
     |--------------------------------------------------------------------------
     */
