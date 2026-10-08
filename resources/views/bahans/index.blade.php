@@ -247,8 +247,67 @@ function stokTotal($id, $rows)
     </div>
 </div>
 
+{{-- CRUD STOK OUTLET --}}
+@if($selectedOutlet && $selectedOutlet !== 'all')
+    <div class="bg-white border border-gray-200 rounded-xl p-5 mb-5">
+        <div class="mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">Kelola Stok Outlet</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                Ubah jumlah stok langsung, atau hapus stok item. Outlet hanya dapat mengelola stok outletnya sendiri.
+            </p>
+        </div>
+
+        <div class="space-y-3">
+            @foreach($stockItems as $item)
+                @php
+                    $stokSaatIni = stokOutlet($item->id, $stockOutletRows);
+                @endphp
+
+                <div class="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 md:flex-row md:items-center">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-gray-800">{{ $item->nama }}</div>
+                        <div class="text-xs text-gray-500">
+                            Stok saat ini: <span class="font-semibold">{{ angka($stokSaatIni) }} {{ $itemUnits[$item->nama] ?? $item->satuan }}</span>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ route('stok.update', $item->id) }}" class="flex gap-2">
+                        @csrf
+                        @method('PATCH')
+                        @if(!$isOutlet)
+                            <input type="hidden" name="outlet" value="{{ $selectedOutlet }}">
+                        @endif
+                        <input
+                            type="number"
+                            name="stok"
+                            min="0"
+                            step="0.01"
+                            value="{{ $stokSaatIni }}"
+                            class="w-32 border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                        >
+                        <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+                            Simpan
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('stok.destroy', $item->id) }}" onsubmit="return confirm('Hapus stok {{ $item->nama }} dari outlet ini?')">
+                        @csrf
+                        @method('DELETE')
+                        @if(!$isOutlet)
+                            <input type="hidden" name="outlet" value="{{ $selectedOutlet }}">
+                        @endif
+                        <button type="submit" class="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100">
+                            Hapus
+                        </button>
+                    </form>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
+
 {{-- FORM INPUT --}}
-@if(!$isOutlet && $selectedOutlet)
+@if($selectedOutlet && $selectedOutlet !== 'all')
 
     <div class="bg-white border border-gray-200 rounded-xl p-5">
 
