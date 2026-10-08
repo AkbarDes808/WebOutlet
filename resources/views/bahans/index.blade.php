@@ -51,9 +51,13 @@ function stokOutlet($id, $rows)
 
 function stokTotal($id, $rows)
 {
-    return optional(
-        $rows->firstWhere('stock_item_id', $id)
-    )->total_stok ?? 0;
+    if (is_array($rows)) {
+        return (float) ($rows[$id] ?? 0);
+    }
+
+    $row = $rows->firstWhere('stock_item_id', $id);
+
+    return (float) ($row->total_stok ?? 0);
 }
 
 @endphp
