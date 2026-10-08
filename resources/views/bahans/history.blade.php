@@ -50,7 +50,7 @@
                 </form>
             @else
                 <div class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm">
-                    {{ $selectedOutlet }}
+                    {{ $outletNames[strtolower($selectedOutlet)] ?? $selectedOutlet }}
                 </div>
             @endif
         </div>
@@ -187,7 +187,7 @@
                             <div class="flex items-center justify-between gap-3 px-4 py-3">
                                 <div class="min-w-0">
                                     <div class="truncate text-sm font-semibold text-gray-800">
-                                        {{ $item['nama'] }}
+                                        {{ $item['nama'] }}@if(isset($itemUnits[$item['nama']])) <span class="text-gray-500">({{ $itemUnits[$item['nama']] }})</span>@endif
                                     </div>
 
                                     <div class="mt-1 text-xs text-gray-500">
