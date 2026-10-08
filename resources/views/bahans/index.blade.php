@@ -7,7 +7,7 @@ $isOutlet = preg_match('/^outlet\s\d+$/i', trim(Auth::user()->role));
 
 $rows = [
     'tepung' => 'Tepung',
-    'teh' => 'Teh',
+    'teh' => 'Teh Kotak',
     'plastik_sedang' => 'Plastik Sedang',
     'dus_chicken' => 'Dus Chicken',
 ];
@@ -343,7 +343,7 @@ function stokTotal($id, $rows)
                                     for="stock_item_{{ $item->id }}"
                                     class="text-sm font-medium text-gray-700"
                                 >
-                                    {{ $item->nama }}
+                                    {{ $item->nama }}{{ $item->nama === 'Plastik Sedang' && $item->kategori === 'Menu Gratis' ? ' (Gratis)' : '' }}
                                 </label>
 
                                 <div class="text-xs text-gray-400 mt-0.5">
