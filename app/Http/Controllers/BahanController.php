@@ -1240,13 +1240,8 @@ class BahanController extends Controller
             ->orderBy('id')
             ->get();
 
-        $stockOutletRows = DB::table(
-            'stock_item_outlets'
-        )
-            ->whereRaw(
-                'LOWER(TRIM(outlet)) = ?',
-                [$selectedOutlet]
-            )
+        $stockOutletRows = DB::table('stock_item_outlets')
+            ->when($selectedOutlet !== 'all', fn ($q) => $q->whereRaw('LOWER(TRIM(outlet)) = ?', [$selectedOutlet]))
             ->orderBy('id')
             ->get()
             ->groupBy('stock_item_id');
