@@ -773,6 +773,7 @@ class TransactionController extends Controller
                     'transactions.nama_outlet',
                     'transactions.event',
                     'transactions.payment_method',
+                    'transactions.status',
                     'transactions.total',
                     'transactions.payment_amount',
                     'transactions.change_amount',
