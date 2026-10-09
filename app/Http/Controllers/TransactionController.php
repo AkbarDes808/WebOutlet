@@ -153,16 +153,6 @@ class TransactionController extends Controller
             $total =
                 $subtotal + $tax;
 
-            // Tolak transaksi jika total keranjang nol (menu gratis saja).
-            if ($total <= 0) {
-                DB::rollBack();
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Masukkan jumlah uang yang diterima.',
-                ], 422);
-            }
-
             $allowedPaymentMethods = ['cash', 'qris'];
             $paymentMethod = strtolower(trim((string) $paymentMethod));
 
