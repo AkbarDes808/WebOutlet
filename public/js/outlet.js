@@ -2080,9 +2080,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                 10
                             );
 
+                        // Menu gratis dengan total Rp0 tidak perlu input uang diterima.
                         if (
-                            isNaN(receivedAmount) ||
-                            receivedAmount <= 0
+                            total > 0 &&
+                            (
+                                isNaN(receivedAmount) ||
+                                receivedAmount <= 0
+                            )
                         ) {
 
                             alert(
