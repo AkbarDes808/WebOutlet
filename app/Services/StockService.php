@@ -151,11 +151,32 @@ class StockService
                 ->with('stockItem')
                 ->get();
 
+            // Fallback otomatis untuk menu yang mengandung kata "nasi".
+            // Nasi memakai stock item "Nasi" dengan jumlah 1 per menu.
             if ($resep->isEmpty()) {
-                throw new Exception(
-                    'Resep stok belum dibuat untuk menu: ' .
-                    $menuName
-                );
+                $nasi = null;
+
+                if (str_contains(mb_strtolower($menuName), 'nasi')) {
+                    $nasi = DB::table('stock_items')
+                        ->whereRaw('LOWER(TRIM(nama)) = ?', ['nasi'])
+                        ->where('aktif', true)
+                        ->first();
+                }
+
+                if ($nasi) {
+                    $resep = collect([
+                        (object) [
+                            'stock_item_id' => (int) $nasi->id,
+                            'jumlah' => 1,
+                            'stockItem' => $nasi,
+                        ],
+                    ]);
+                } else {
+                    throw new Exception(
+                        'Resep stok belum dibuat untuk menu: ' .
+                        $menuName
+                    );
+                }
             }
 
             foreach ($resep as $recipe) {
