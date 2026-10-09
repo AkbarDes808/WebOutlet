@@ -136,9 +136,9 @@
                                         Item
                                     </th>
                                     <th class="px-5 py-3 text-right font-semibold text-gray-600">
-                                        Perubahan
+                                        Penggunaan / Penambahan
                                     </th>
-                                    <th class="px-5 py-3 text-right font-semibold text-gray-600">Sisa Stok</th>
+                                    <th class="px-5 py-3 text-right font-semibold text-gray-600">Sisa Stok Saat Ini</th>
                                 </tr>
                             </thead>
 
@@ -157,14 +157,14 @@
                                         <td class="px-5 py-3 text-right">
                                             @if($change > 0)
                                                 <span class="font-bold text-green-600">
-                                                    +{{ number_format($change, 0, ',', '.') }}
+                                                    Penambahan: {{ number_format($change, 0, ',', '.') }}
                                                 </span>
                                             @elseif($change < 0)
                                                 <span class="font-bold text-red-600">
-                                                    {{ number_format($change, 0, ',', '.') }}
+                                                    Terpakai: {{ number_format(abs($change), 0, ',', '.') }}
                                                 </span>
                                             @else
-                                                <span class="text-gray-400">0</span>
+                                                <span class="text-gray-400">Tidak berubah</span>
                                             @endif
                                         </td>
 
@@ -191,7 +191,7 @@
                                     </div>
 
                                     <div class="mt-1 text-xs text-gray-500">
-                                        Total:
+                                        Sisa stok saat ini:
                                         <span class="font-semibold text-gray-700">
                                             {{ $item['total'] === null || !array_key_exists('total', $item) ? '-' : number_format($total, 0, ',', '.') }}
                                         </span>
@@ -201,15 +201,15 @@
                                 <div class="shrink-0 text-right">
                                     @if($change > 0)
                                         <div class="font-bold text-green-600">
-                                            +{{ number_format($change, 0, ',', '.') }}
+                                            Penambahan: {{ number_format($change, 0, ',', '.') }}
                                         </div>
                                     @elseif($change < 0)
                                         <div class="font-bold text-red-600">
-                                            {{ number_format($change, 0, ',', '.') }}
+                                            Terpakai: {{ number_format(abs($change), 0, ',', '.') }}
                                         </div>
                                     @else
                                         <div class="font-bold text-gray-400">
-                                            0
+                                            Tidak berubah
                                         </div>
                                     @endif
                                 </div>
