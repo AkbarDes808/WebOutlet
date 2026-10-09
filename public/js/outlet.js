@@ -257,12 +257,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const tax = 0;
         const total = subtotal;
 
-        // Blokir transaksi jika keranjang hanya berisi menu gratis.
-        if (total <= 0) {
-            alert('Masukkan jumlah uang yang diterima.');
-            return;
-        }
-
         // =====================================================
         // PAYMENT METHOD
         // =====================================================
