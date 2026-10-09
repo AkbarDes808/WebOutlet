@@ -16,7 +16,7 @@ Artisan::command('app:reset-operational-data {--force : Skip confirmation}', fun
         'RESET SEMUA DATA OPERASIONAL? Transaksi, shift, riwayat stok akan dihapus dan semua stok menjadi 0. Backup database penuh dibuat terlebih dahulu.'
     )) {
         $this->warn('Reset dibatalkan. Tidak ada data yang diubah.');
-        return self::SUCCESS;
+        return 0;
     }
 
     $connectionName = config('database.default');
@@ -99,7 +99,7 @@ Artisan::command('app:reset-operational-data {--force : Skip confirmation}', fun
     } catch (\Throwable $e) {
         $this->error('RESET DIBATALKAN: backup database gagal.');
         $this->line($e->getMessage());
-        return self::FAILURE;
+        return 1;
     }
 
     $this->info('Backup database berhasil: ' . $backupPath);
@@ -154,11 +154,6 @@ Artisan::command('app:reset-operational-data {--force : Skip confirmation}', fun
 
                 if ($values !== []) {
                     $counts['bahans_rows_zeroed'] = DB::table('bahans')
-                        ->where(function ($query) use ($values) {
-                            foreach (array_keys($values) as $column) {
-                                $query->orWhere($column, '!=', 0);
-                            }
-                        })
                         ->update($values);
                 }
             }
@@ -168,7 +163,7 @@ Artisan::command('app:reset-operational-data {--force : Skip confirmation}', fun
     } catch (\Throwable $e) {
         $this->error('Reset gagal dan perubahan database dibatalkan. Backup tetap tersedia: ' . $backupPath);
         $this->line($e->getMessage());
-        return self::FAILURE;
+        return 1;
     }
 
     $this->newLine();
